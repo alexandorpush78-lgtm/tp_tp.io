@@ -895,6 +895,23 @@ body[data-theme="fire"] .bar-fill {
   opacity: 0.35;
 }
 
+.nav-btn {
+  background: linear-gradient(145deg, #1a1a2e, #16213e);
+  color: var(--yellow);
+  border: 2px solid var(--dim);
+  padding: 12px 22px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.nav-btn:hover {
+  border-color: var(--neon);
+  transform: translateY(-3px);
+  box-shadow: 0 0 25px rgba(0, 255, 200, 0.4);
+}
+
   </style>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
@@ -918,7 +935,20 @@ body[data-theme="fire"] .bar-fill {
     <button onclick="showSection('online-stats')">🌐 Онлайн-статистика</button>
     <button onclick="showSection('online')" id="nav-online">🌐 Онлайн опросы</button>
  <button onclick="showSection('multi')" id="nav-multi">🔀 Мульти-голосование</button>
-<li onclick="showSection('polls')" style="cursor:pointer;">📊 Опросы</li>
+<button onclick="showSection('polls')" 
+        style="background: linear-gradient(145deg, #1a1a2e, #16213e); 
+               color: var(--yellow); 
+               border: 2px solid var(--neon); 
+               padding: 12px 24px; 
+               border-radius: 12px; 
+               font-weight: 600; 
+               cursor: pointer; 
+               transition: all 0.3s; 
+               display: flex; 
+               align-items: center; 
+               gap: 8px;">
+    <span>🧠</span> Опросы
+</button>
 	
 
     <button onclick="showSection('login')" id="loginBtn">Вход 🔑</button>
@@ -1234,16 +1264,16 @@ body[data-theme="fire"] .bar-fill {
   <div id="noMultiPolls" class="message hidden">Пока нет мульти-опросов. Создайте первый! 🔀</div>
 </div>
 
-<!-- ======================== ВКЛАДКА ОПРОСЫ — ПРЕМИУМ ДИЗАЙН ======================== -->
-<div id="polls" class="section" style="display: none; padding: 40px 20px;">
-  <div style="max-width: 1200px; margin: 0 auto;">
-    <div style="text-align:center; margin-bottom: 50px;">
-      <h2 style="font-size: 2.8rem; color: var(--neon); margin-bottom: 10px;">🧠 Интеллектуальные Опросы</h2>
-      <p style="color: #ccc; font-size: 1.25rem;">Голосуй один раз в каждом опросе</p>
-    </div>
-    
-    <div id="pollsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 30px;"></div>
-  </div>
+<!-- ======================== РАЗДЕЛ ОПРОСЫ ======================== -->
+<div id="polls" class="section" style="display: none; padding: 30px 20px;">
+  <h2 style="text-align:center; margin-bottom:40px; font-size:2.8rem; color:var(--yellow); text-shadow:0 0 40px var(--neon);">
+    🧠 Интеллектуальные опросы
+  </h2>
+  <p style="text-align:center; color:#aaa; max-width:800px; margin:0 auto 50px; font-size:1.2rem;">
+    Голосуй за самые интересные вопросы о мышлении, лидерстве, ИИ и будущем
+  </p>
+
+  <div id="pollsContainer" class="stats-cards" style="max-width:1400px; margin:0 auto;"></div>
 </div>
 
 <!-- Выпадающая карточка профиля (с увеличением аватарки) -->
@@ -3364,7 +3394,7 @@ async function loadGlobalPolls() {
   const container = document.getElementById('pollsContainer');
   if (!container) return;
 
-  container.innerHTML = '<p style="text-align:center; color:#aaa; grid-column:1/-1; padding:80px;">Загрузка опросов...</p>';
+  container.innerHTML = '<p style="text-align:center; color:#aaa; grid-column:1/-1; padding:80px; font-size:1.3rem;">Загрузка опросов...</p>';
 
   const currentEmail = localStorage.getItem('userEmail') || localStorage.getItem('user') || 'guest';
 
@@ -3397,53 +3427,51 @@ async function loadGlobalPolls() {
     const hasVoted = votedUsers.includes(currentEmail);
 
     html += `
-      <div class="stats-card" style="border: 2px solid var(--neon); border-radius: 20px; padding: 10px; transition: all 0.3s;">
-        <div style="padding: 25px 22px;">
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
-            <span style="font-size:2.4rem;">🧠</span>
-            <h3 style="margin:0; color:var(--yellow); line-height:1.3;">${poll.title}</h3>
-          </div>
+      <div class="stats-card" style="padding:30px; border:3px solid var(--dim);">
+        <div style="display:flex; align-items:center; gap:16px; margin-bottom:22px;">
+          <span style="font-size:3rem;">🧠</span>
+          <h3 style="margin:0; color:var(--yellow); line-height:1.3; font-size:1.65rem;">${poll.title}</h3>
+        </div>
 
-          <div id="opts-${poll.id}">`;
+        <div id="opts-${poll.id}" style="margin:25px 0;">`;
 
     poll.options.forEach((text, i) => {
       const percent = total > 0 ? Math.round((votes[i] / total) * 100) : 0;
       html += `
-        <div style="background:#1f1f1f; padding:16px; margin:12px 0; border-radius:12px; border:1px solid #333;">
-          <label style="display:flex; align-items:center; gap:15px; cursor:pointer;">
+        <div style="background:rgba(30,30,45,0.9); padding:18px; margin:14px 0; border-radius:16px; border:2px solid #333;">
+          <label style="display:flex; align-items:center; gap:18px; cursor:pointer; font-size:1.1rem;">
             <input type="radio" name="vote-${poll.id}" value="${i}" 
-                   style="transform:scale(1.4); accent-color:var(--neon);" ${hasVoted ? 'disabled' : ''}>
+                   style="transform:scale(1.5); accent-color:var(--neon);" ${hasVoted ? 'disabled' : ''}>
             <span style="flex:1; color:#ddd;">${text}</span>
-            <span style="color:var(--yellow); font-weight:700; min-width:80px; text-align:right;">
+            <span style="color:var(--yellow); font-weight:800; min-width:90px; text-align:right;">
               ${votes[i]} (${percent}%)
             </span>
           </label>
-          <div class="results-bar" style="margin-top:10px; height:7px; background:#222; border-radius:999px; overflow:hidden;">
-            <div class="bar-fill" style="width:${percent}%; background:linear-gradient(90deg, var(--neon), #ffd700);"></div>
+          <div class="results-bar" style="margin-top:12px;">
+            <div class="bar-fill" style="width:${percent}%;"></div>
           </div>
         </div>`;
     });
 
     html += `</div>`;
 
-    // Кнопка
     if (hasVoted) {
-      html += `<button class="main" disabled style="width:100%; padding:18px; margin-top:15px; background:#444;">✅ Вы уже проголосовали</button>`;
+      html += `<button class="main" disabled style="width:100%; padding:18px; background:#333; color:#888;">✅ Вы уже проголосовали</button>`;
     } else {
-      html += `<button onclick="castVote('${poll.id}')" class="main" style="width:100%; padding:18px; margin-top:15px;">Проголосовать 🗳️</button>`;
+      html += `<button onclick="castVote('${poll.id}')" class="main" style="width:100%; padding:18px; margin-top:10px;">Проголосовать 🗳️</button>`;
     }
 
-    html += `</div></div>`;
+    html += `</div>`;
   }
 
-  container.innerHTML = html;
+  container.innerHTML = html || '<p style="text-align:center; color:#aaa; padding:60px;">Пока нет опросов</p>';
 }
 
 async function castVote(pollId) {
   const selected = document.querySelector(`input[name="vote-${pollId}"]:checked`);
   if (!selected) return alert("Выберите вариант ответа!");
 
-  const index = parseInt(selected.value);
+  const optionIndex = parseInt(selected.value);
   const docRef = db.collection('globalPolls').doc(pollId);
   const currentEmail = localStorage.getItem('userEmail') || localStorage.getItem('user') || 'guest';
 
@@ -3453,21 +3481,23 @@ async function castVote(pollId) {
 
   try {
     const docSnap = await docRef.get();
-    const data = docSnap.data() || {};
+    let data = docSnap.data() || {};
 
     if (data.votedUsers && data.votedUsers.includes(currentEmail)) {
       alert("Вы уже проголосовали в этом опросе!");
       return;
     }
 
+    // Сохраняем твой личный выбор
     await docRef.update({
-      [`votes.${index}`]: firebase.firestore.FieldValue.increment(1),
+      [`votes.${optionIndex}`]: firebase.firestore.FieldValue.increment(1),
       totalVotes: firebase.firestore.FieldValue.increment(1),
-      votedUsers: firebase.firestore.FieldValue.arrayUnion(currentEmail)
+      votedUsers: firebase.firestore.FieldValue.arrayUnion(currentEmail),
+      [`userVotes.${currentEmail}`]: optionIndex   // ← Вот это главное
     });
 
     alert("✅ Голос засчитан!");
-    loadGlobalPolls(); // обновляем
+    loadGlobalPolls(); // обновляем отображение
 
   } catch (error) {
     console.error(error);
