@@ -874,6 +874,27 @@ body[data-theme="fire"] .bar-fill {
   background: linear-gradient(90deg, #ff0000, #ff8800, #ffff00);
   box-shadow: 0 0 40px #ffff00;
 }
+
+.premium-poll-card {
+  position: relative;
+}
+
+.premium-poll-card::before {
+  content: '';
+  position: absolute;
+  top: -2px; left: -2px; right: -2px; bottom: -2px;
+  background: linear-gradient(45deg, #00ff9d, #ffd700, #00ff9d);
+  border-radius: 26px;
+  z-index: -1;
+  filter: blur(8px);
+  opacity: 0.15;
+  transition: opacity 0.4s;
+}
+
+.premium-poll-card:hover::before {
+  opacity: 0.35;
+}
+
   </style>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
@@ -1213,14 +1234,16 @@ body[data-theme="fire"] .bar-fill {
   <div id="noMultiPolls" class="message hidden">Пока нет мульти-опросов. Создайте первый! 🔀</div>
 </div>
 
-<!-- ======================== ВКЛАДКА ОПРОСЫ ======================== -->
-<div id="polls" class="section" style="display: none; padding: 30px 20px;">
-  <h2 style="text-align:center; color:var(--neon); margin-bottom: 10px; text-shadow: 0 0 20px var(--neon);">📊 Интеллектуальные Опросы</h2>
-  <p style="text-align:center; color:#aaa; font-size:1.1rem; margin-bottom:40px;">
-    Голосуй вместе со всеми посетителями сайта.<br>Результаты обновляются в реальном времени.
-  </p>
-  
-  <div id="pollsContainer" style="max-width: 900px; margin: 0 auto;"></div>
+<!-- ======================== ВКЛАДКА ОПРОСЫ — ПРЕМИУМ ДИЗАЙН ======================== -->
+<div id="polls" class="section" style="display: none; padding: 40px 20px;">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <div style="text-align:center; margin-bottom: 50px;">
+      <h2 style="font-size: 2.8rem; color: var(--neon); margin-bottom: 10px;">🧠 Интеллектуальные Опросы</h2>
+      <p style="color: #ccc; font-size: 1.25rem;">Голосуй один раз в каждом опросе</p>
+    </div>
+    
+    <div id="pollsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 30px;"></div>
+  </div>
 </div>
 
 <!-- Выпадающая карточка профиля (с увеличением аватарки) -->
@@ -3340,76 +3363,115 @@ const globalPolls = [
 async function loadGlobalPolls() {
   const container = document.getElementById('pollsContainer');
   if (!container) return;
-  
-  container.innerHTML = '<p style="text-align:center; color:#aaa;">Загрузка опросов...</p>';
+
+  container.innerHTML = '<p style="text-align:center; color:#aaa; grid-column:1/-1; padding:80px;">Загрузка опросов...</p>';
+
+  const currentEmail = localStorage.getItem('userEmail') || localStorage.getItem('user') || 'guest';
 
   let html = '';
+
   for (let poll of globalPolls) {
     const docRef = db.collection('globalPolls').doc(poll.id);
-    const docSnap = await docRef.get();
-    
+    let docSnap;
+
+    try {
+      docSnap = await docRef.get();
+    } catch (e) {
+      console.error("Ошибка Firebase:", e);
+      continue;
+    }
+
     let votes = new Array(poll.options.length).fill(0);
     let total = 0;
+    let votedUsers = [];
 
     if (docSnap.exists) {
       const data = docSnap.data();
       votes = data.votes || votes;
       total = data.totalVotes || 0;
+      votedUsers = data.votedUsers || [];
     } else {
-      await docRef.set({ votes: votes, totalVotes: 0 });
+      await docRef.set({ votes: votes, totalVotes: 0, votedUsers: [] });
     }
 
+    const hasVoted = votedUsers.includes(currentEmail);
+
     html += `
-      <div class="stats-card" style="margin-bottom: 35px;">
-        <h3 style="margin-bottom: 15px;">${poll.title}</h3>
-        
-        <div id="opts-${poll.id}">`;
+      <div class="stats-card" style="border: 2px solid var(--neon); border-radius: 20px; padding: 10px; transition: all 0.3s;">
+        <div style="padding: 25px 22px;">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+            <span style="font-size:2.4rem;">🧠</span>
+            <h3 style="margin:0; color:var(--yellow); line-height:1.3;">${poll.title}</h3>
+          </div>
+
+          <div id="opts-${poll.id}">`;
 
     poll.options.forEach((text, i) => {
       const percent = total > 0 ? Math.round((votes[i] / total) * 100) : 0;
       html += `
         <div style="background:#1f1f1f; padding:16px; margin:12px 0; border-radius:12px; border:1px solid #333;">
-          <label style="display:flex; align-items:center; gap:15px; cursor:pointer; font-size:1.05rem;">
-            <input type="radio" name="vote-${poll.id}" value="${i}" style="transform:scale(1.4); accent-color: var(--neon);">
-            <span style="flex:1;">${text}</span>
-            <span style="color:var(--yellow); font-weight:bold; min-width:70px; text-align:right;">${votes[i]} (${percent}%)</span>
+          <label style="display:flex; align-items:center; gap:15px; cursor:pointer;">
+            <input type="radio" name="vote-${poll.id}" value="${i}" 
+                   style="transform:scale(1.4); accent-color:var(--neon);" ${hasVoted ? 'disabled' : ''}>
+            <span style="flex:1; color:#ddd;">${text}</span>
+            <span style="color:var(--yellow); font-weight:700; min-width:80px; text-align:right;">
+              ${votes[i]} (${percent}%)
+            </span>
           </label>
+          <div class="results-bar" style="margin-top:10px; height:7px; background:#222; border-radius:999px; overflow:hidden;">
+            <div class="bar-fill" style="width:${percent}%; background:linear-gradient(90deg, var(--neon), #ffd700);"></div>
+          </div>
         </div>`;
     });
 
     html += `</div>`;
-    
-    // Красивая кнопка в стиле сайта
-    html += `
-      <button onclick="castVote('${poll.id}')" 
-              class="main" 
-              style="width:100%; padding:18px; font-size:1.2rem; margin-top:15px;">
-        Проголосовать
-      </button>
-    </div>`;
+
+    // Кнопка
+    if (hasVoted) {
+      html += `<button class="main" disabled style="width:100%; padding:18px; margin-top:15px; background:#444;">✅ Вы уже проголосовали</button>`;
+    } else {
+      html += `<button onclick="castVote('${poll.id}')" class="main" style="width:100%; padding:18px; margin-top:15px;">Проголосовать 🗳️</button>`;
+    }
+
+    html += `</div></div>`;
   }
-  
+
   container.innerHTML = html;
 }
 
 async function castVote(pollId) {
   const selected = document.querySelector(`input[name="vote-${pollId}"]:checked`);
-  if (!selected) return alert("⚠️ Выберите вариант ответа!");
+  if (!selected) return alert("Выберите вариант ответа!");
 
   const index = parseInt(selected.value);
   const docRef = db.collection('globalPolls').doc(pollId);
+  const currentEmail = localStorage.getItem('userEmail') || localStorage.getItem('user') || 'guest';
+
+  if (currentEmail === 'guest') {
+    return alert("Войдите в аккаунт, чтобы голосовать!");
+  }
 
   try {
+    const docSnap = await docRef.get();
+    const data = docSnap.data() || {};
+
+    if (data.votedUsers && data.votedUsers.includes(currentEmail)) {
+      alert("Вы уже проголосовали в этом опросе!");
+      return;
+    }
+
     await docRef.update({
       [`votes.${index}`]: firebase.firestore.FieldValue.increment(1),
-      totalVotes: firebase.firestore.FieldValue.increment(1)
+      totalVotes: firebase.firestore.FieldValue.increment(1),
+      votedUsers: firebase.firestore.FieldValue.arrayUnion(currentEmail)
     });
-    
-    alert("✅ Голос успешно засчитан!");
-    loadGlobalPolls(); // обновляем результаты сразу
-  } catch (e) {
-    console.error(e);
-    alert("Ошибка при отправке голоса");
+
+    alert("✅ Голос засчитан!");
+    loadGlobalPolls(); // обновляем
+
+  } catch (error) {
+    console.error(error);
+    alert("Ошибка при голосовании. Попробуйте позже.");
   }
 }
 
