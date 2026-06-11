@@ -1,6 +1,25 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+<!-- === FIREBASE === -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+
+<script>
+// ТВОЙ CONFIG (вставь сюда)
+const firebaseConfig = {
+  apiKey: "AIzaSyA-I6ahSmt6C6O26iq58XGIo7fOIl58PMo",
+  authDomain: "votehubpols.firebaseapp.com",
+  projectId: "votehubpols",
+  storageBucket: "votehubpols.firebasestorage.app",
+  messagingSenderId: "1078130388423",
+  appId: "1:1078130388423:web:3d12595bebc82abf24fde2"
+};
+
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+</script>
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>VoteHub - Система онлайн-голосований</title>
@@ -878,6 +897,8 @@ body[data-theme="fire"] .bar-fill {
     <button onclick="showSection('online-stats')">🌐 Онлайн-статистика</button>
     <button onclick="showSection('online')" id="nav-online">🌐 Онлайн опросы</button>
  <button onclick="showSection('multi')" id="nav-multi">🔀 Мульти-голосование</button>
+<li onclick="showSection('polls')" style="cursor:pointer;">📊 Опросы</li>
+	
 
     <button onclick="showSection('login')" id="loginBtn">Вход 🔑</button>
     <button onclick="showSection('friends')">👥 Friends</button>
@@ -1190,6 +1211,16 @@ body[data-theme="fire"] .bar-fill {
   <h3 style="color:var(--neon); text-align:center; margin:40px 0 25px;">📋 Активные мульти-опросы</h3>
   <div id="multiPollsList" class="stats-cards"></div>
   <div id="noMultiPolls" class="message hidden">Пока нет мульти-опросов. Создайте первый! 🔀</div>
+</div>
+
+<!-- ======================== ВКЛАДКА ОПРОСЫ ======================== -->
+<div id="polls" class="section" style="display: none; padding: 30px 20px;">
+  <h2 style="text-align:center; color:var(--neon); margin-bottom: 10px; text-shadow: 0 0 20px var(--neon);">📊 Интеллектуальные Опросы</h2>
+  <p style="text-align:center; color:#aaa; font-size:1.1rem; margin-bottom:40px;">
+    Голосуй вместе со всеми посетителями сайта.<br>Результаты обновляются в реальном времени.
+  </p>
+  
+  <div id="pollsContainer" style="max-width: 900px; margin: 0 auto;"></div>
 </div>
 
 <!-- Выпадающая карточка профиля (с увеличением аватарки) -->
@@ -3291,4 +3322,112 @@ loadMultiPolls();
   </div>
 </div>
 </body>
+<script>
+// ==================== 10 ИНТЕЛЛЕКТУАЛЬНЫХ ОПРОСОВ ====================
+const globalPolls = [
+  { id: "poll_001", title: "Какой когнитивный bias самый опасный в управлении?", options: ["Confirmation Bias (подтверждение своих убеждений)", "Sunk Cost Fallacy (ошибка невозвратных затрат)", "Dunning-Kruger Effect", "Groupthink (групповое мышление)", "Anchoring (якорение)"] },
+  { id: "poll_002", title: "Что важнее всего для долгосрочного успеха?", options: ["Высокий интеллект и когнитивные способности", "Дисциплина и сила воли", "Эмоциональный интеллект и социальные навыки", "Умение быстро учиться", "Везение + правильное окружение"] },
+  { id: "poll_003", title: "Лучшая стратегия в неопределённом мире", options: ["Глубокая специализация в одной области", "Построение широкой сети контактов", "Постоянная адаптивность", "Создание капитала и пассивных доходов", "Личный бренд и репутация"] },
+  { id: "poll_004", title: "Должен ли ИИ иметь право отказать человеку в просьбе?", options: ["Да, если запрос вредит другим", "Да, по базовым этическим правилам", "Нет, всегда выполнять запрос владельца", "Только с объяснением и альтернативой", "Зависит от уровня ИИ"] },
+  { id: "poll_005", title: "Как вы принимаете важные решения под давлением?", options: ["Собираю максимум данных", "Доверяю интуиции + быстрая проверка", "Использую структурированный фреймворк", "Обсуждаю с компетентными людьми", "Принимаю решение сам и несу ответственность"] },
+  { id: "poll_006", title: "Допустимо ли использовать серые схемы, если все так делают?", options: ["Никогда, принципы важнее", "Да, если все играют по таким правилам", "Только в ответ на действия конкурентов", "Зависит от ситуации и рисков", "Нет, но можно использовать законные лазейки"] },
+  { id: "poll_007", title: "Самый недооценённый навык современного лидера", options: ["Deep Work — глубокая концентрация", "Умение говорить «нет»", "Качественное делегирование", "Эмоциональная устойчивость", "Стратегическое мышление на 5–10 лет"] },
+  { id: "poll_008", title: "Какой формат работы будет доминировать через 10 лет?", options: ["Полностью удалённая работа", "Гибридный формат (2-3 дня в офисе)", "Локальные хабы и коворкинги", "Возврат к традиционному офису", "Распределённые автономные команды"] },
+  { id: "poll_009", title: "Что вы готовы пожертвовать ради значимого достижения?", options: ["Свободное время и отдых", "Комфорт и материальные блага", "Отношения (временно)", "Часть моральных принципов", "Ничего — баланс важнее всего"] },
+  { id: "poll_010", title: "Как распределить ограниченные ресурсы в кризис?", options: ["Сохранить команду и зарплаты", "Инвестировать в новый продукт", "Сократить всё кроме продаж", "Жёсткая оптимизация и автоматизация", "Сохранить ключевых талантов любой ценой"] }
+];
+
+async function loadGlobalPolls() {
+  const container = document.getElementById('pollsContainer');
+  if (!container) return;
+  
+  container.innerHTML = '<p style="text-align:center; color:#aaa;">Загрузка опросов...</p>';
+
+  let html = '';
+  for (let poll of globalPolls) {
+    const docRef = db.collection('globalPolls').doc(poll.id);
+    const docSnap = await docRef.get();
+    
+    let votes = new Array(poll.options.length).fill(0);
+    let total = 0;
+
+    if (docSnap.exists) {
+      const data = docSnap.data();
+      votes = data.votes || votes;
+      total = data.totalVotes || 0;
+    } else {
+      await docRef.set({ votes: votes, totalVotes: 0 });
+    }
+
+    html += `
+      <div class="stats-card" style="margin-bottom: 35px;">
+        <h3 style="margin-bottom: 15px;">${poll.title}</h3>
+        
+        <div id="opts-${poll.id}">`;
+
+    poll.options.forEach((text, i) => {
+      const percent = total > 0 ? Math.round((votes[i] / total) * 100) : 0;
+      html += `
+        <div style="background:#1f1f1f; padding:16px; margin:12px 0; border-radius:12px; border:1px solid #333;">
+          <label style="display:flex; align-items:center; gap:15px; cursor:pointer; font-size:1.05rem;">
+            <input type="radio" name="vote-${poll.id}" value="${i}" style="transform:scale(1.4); accent-color: var(--neon);">
+            <span style="flex:1;">${text}</span>
+            <span style="color:var(--yellow); font-weight:bold; min-width:70px; text-align:right;">${votes[i]} (${percent}%)</span>
+          </label>
+        </div>`;
+    });
+
+    html += `</div>`;
+    
+    // Красивая кнопка в стиле сайта
+    html += `
+      <button onclick="castVote('${poll.id}')" 
+              class="main" 
+              style="width:100%; padding:18px; font-size:1.2rem; margin-top:15px;">
+        Проголосовать
+      </button>
+    </div>`;
+  }
+  
+  container.innerHTML = html;
+}
+
+async function castVote(pollId) {
+  const selected = document.querySelector(`input[name="vote-${pollId}"]:checked`);
+  if (!selected) return alert("⚠️ Выберите вариант ответа!");
+
+  const index = parseInt(selected.value);
+  const docRef = db.collection('globalPolls').doc(pollId);
+
+  try {
+    await docRef.update({
+      [`votes.${index}`]: firebase.firestore.FieldValue.increment(1),
+      totalVotes: firebase.firestore.FieldValue.increment(1)
+    });
+    
+    alert("✅ Голос успешно засчитан!");
+    loadGlobalPolls(); // обновляем результаты сразу
+  } catch (e) {
+    console.error(e);
+    alert("Ошибка при отправке голоса");
+  }
+}
+
+// Обновляем функцию showSection (чтобы при открытии вкладки грузились опросы)
+const originalShowSection = window.showSection || function(){};
+window.showSection = function(section) {
+  originalShowSection(section);
+  
+  document.querySelectorAll('.section').forEach(s => {
+    s.style.display = 'none';
+  });
+  
+  const el = document.getElementById(section);
+  if (el) el.style.display = 'block';
+
+  if (section === 'polls') {
+    loadGlobalPolls();
+  }
+};
+</script>
 </html>
