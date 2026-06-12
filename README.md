@@ -904,77 +904,93 @@ body[data-theme="fire"] .bar-fill {
   box-shadow: 0 0 25px rgba(0, 255, 200, 0.4);
 }
 
-/* ===================== СПЕЦИАЛЬНЫЙ МОБИЛЬНЫЙ ФИКС ДЛЯ ОПРОСОВ ===================== */
+/* ===================== СИЛЬНЫЙ МОБИЛЬНЫЙ ФИКС ===================== */
 
 @media (max-width: 768px) {
+    
+    /* Главный контейнер */
+    .container {
+        margin: 8px auto !important;
+        padding: 0 !important;
+        border-radius: 16px !important;
+    }
 
-    /* Общие карточки в проблемных вкладках */
-    #polls .stats-card,
+    /* Карточки — главное исправление */
+    .stats-card,
+    .public-card,
     #pollsContainer .stats-card,
     #online-poll-list .stats-card,
     #multiPollsList .stats-card,
-    .public-card {
-        padding: 18px 16px !important;
-        margin: 12px 0 !important;
+    #polls .stats-card {
         width: 100% !important;
         max-width: 100% !important;
-        box-sizing: border-box;
+        padding: 20px 18px !important;
+        margin: 12px 0 !important;
+        box-sizing: border-box !important;
+        border-radius: 16px !important;
     }
 
-    /* Убираем сильное сжатие */
+    /* Убираем сжатие по ширине */
     .stats-grid,
     #pollsContainer,
     #online-poll-list,
-    #multiPollsList {
+    #multiPollsList,
+    .stats-cards {
         grid-template-columns: 1fr !important;
-        gap: 14px !important;
+        gap: 16px !important;
+        padding: 0 4px !important;
     }
 
-    /* Улучшаем внутреннее содержимое карточек */
+    /* Внутреннее содержимое карточек */
     .stats-card h3,
     .stats-card h4 {
-        font-size: 1.35rem !important;
-        margin-bottom: 12px;
+        font-size: 1.4rem !important;
+        line-height: 1.3 !important;
     }
 
     .stats-card p {
-        font-size: 1.05rem;
-        line-height: 1.45;
-    }
-
-    /* Таймеры и кнопки */
-    .online-timer {
-        font-size: 1.2rem !important;
-        padding: 8px 0;
-    }
-
-    button {
-        font-size: 1.1rem !important;
-        padding: 14px 20px !important;
+        font-size: 1.08rem !important;
+        line-height: 1.5 !important;
     }
 
     /* Аватарки в карточках */
     .stats-card img {
-        width: 46px !important;
-        height: 46px !important;
+        width: 52px !important;
+        height: 52px !important;
+    }
+
+    /* Кнопки */
+    .stats-card button {
+        width: 100% !important;
+        margin-top: 12px !important;
+        padding: 14px !important;
+        font-size: 1.1rem !important;
+    }
+
+    /* Таймер */
+    .online-timer {
+        font-size: 1.25rem !important;
+        text-align: center !important;
+        padding: 10px 0 !important;
     }
 
     /* Убираем лишние отступы слева */
-    .stats-card > div,
-    .stats-card > h3,
-    .stats-card > p {
+    .stats-card > * {
+        margin-left: 0 !important;
         padding-left: 0 !important;
     }
 }
 
-/* Ещё меньше экраны */
+/* Очень маленькие экраны */
 @media (max-width: 480px) {
-    .stats-card {
+    .stats-card,
+    .public-card {
         padding: 16px 14px !important;
     }
     
-    .stats-card h3 {
-        font-size: 1.25rem !important;
+    .stats-card h3,
+    .stats-card h4 {
+        font-size: 1.3rem !important;
     }
 }
 
@@ -1020,7 +1036,20 @@ body[data-theme="fire"] .bar-fill {
     <span>🧠</span> Опросы
 </button>
 
-	
+<!-- Вставь это перед закрывающим тегом </nav> -->
+<button onclick="showSiteQR()" 
+        style="background:linear-gradient(135deg,#222,#333); 
+               border:2px solid var(--neon); 
+               color:var(--neon); 
+               padding:12px 18px; 
+               border-radius:12px; 
+               cursor:pointer; 
+               font-size:1.05rem; 
+               display:flex; 
+               align-items:center; 
+               gap:8px;">
+    📱 QR сайта
+</button>
 
     <button onclick="showSection('login')" id="loginBtn">Вход 🔑</button>
     <button onclick="showSection('friends')">👥 Friends</button>
@@ -1043,7 +1072,7 @@ body[data-theme="fire"] .bar-fill {
   <h2 id="home-title">Добро пожаловать в VoteHub</h2>
   <p id="home-text" style="text-align:center; font-size:1.45rem; line-height:1.9; max-width:850px; margin:40px auto;">
     Современная платформа для создания и проведения онлайн-голосований.<br><br>
-    Создавайте одиночные и мульти-опросы, голосуйте в реальном времени, анализируйте результаты и делитесь QR-кодами.
+    Создавайте одиночные и мульти-опросы, голосуйте в реальном времени, анализируйте результаты.
   </p>
   <button class="main" onclick="showSection('create')" id="home-btn">Создать новый опрос →</button>
 </div>
@@ -1374,6 +1403,27 @@ body[data-theme="fire"] .bar-fill {
   </p>
 
   <div id="pollsContainer" class="stats-cards" style="max-width:1400px; margin:0 auto;"></div>
+</div>
+
+<!-- QR-код сайта -->
+<div id="siteQRModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.96); z-index:999999; align-items:center; justify-content:center;">
+  <div style="background:#111; padding:35px 40px; border-radius:24px; border:4px solid var(--neon); text-align:center; max-width:420px; box-shadow:0 0 80px rgba(255,234,128,0.7);">
+    
+    <h2 style="color:var(--neon); margin-bottom:20px; text-shadow:0 0 20px var(--yellow);">📱 Сканируй QR-код</h2>
+    <p style="color:#aaa; margin-bottom:25px;">Чтобы быстро попасть на VoteHub</p>
+    
+    <div id="siteQRCode" style="margin:20px auto; padding:20px; background:white; border-radius:16px; display:inline-block;"></div>
+    
+    <div style="margin:20px 0; color:var(--yellow); font-family:monospace; word-break:break-all; font-size:0.95rem;">
+      {{current-url}}
+    </div>
+    
+    <button onclick="closeSiteQR()" 
+            class="main" 
+            style="padding:14px 50px; font-size:1.2rem; margin-top:10px;">
+      Закрыть
+    </button>
+  </div>
 </div>
 
 <!-- Выпадающая карточка профиля (с увеличением аватарки) -->
@@ -3589,6 +3639,32 @@ window.showSection = function(section) {
     }
   }
 };
+
+// Показать QR-код сайта
+function showSiteQR() {
+  const modal = document.getElementById('siteQRModal');
+  const qrContainer = document.getElementById('siteQRCode');
+  const url = window.location.href;
+
+  // Очищаем предыдущий QR
+  qrContainer.innerHTML = '';
+
+  // Генерируем новый QR
+  new QRCode(qrContainer, {
+    text: url,
+    width: 280,
+    height: 280,
+    colorDark: "#000000",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.H
+  });
+
+  modal.style.display = 'flex';
+}
+
+function closeSiteQR() {
+  document.getElementById('siteQRModal').style.display = 'none';
+}
 
 // ======================== ЗАПУСК ========================
 window.onload = () => {
