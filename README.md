@@ -904,6 +904,160 @@ body[data-theme="fire"] .bar-fill {
   box-shadow: 0 0 25px rgba(0, 255, 200, 0.4);
 }
 
+/* ====================== УЛУЧШЕННЫЙ МОБИЛЬНЫЙ АДАПТИВ ====================== */
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px 6px;
+        font-size: 15.5px;
+    }
+
+    .container {
+        border-radius: 18px;
+        margin: 8px auto;
+        box-shadow: 0 0 60px rgba(255,234,128,0.4);
+    }
+
+    /* ШАПКА */
+    header {
+        padding: 45px 15px 35px !important;
+    }
+
+    .header-logo-wrapper {
+        gap: 15px;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .logo-gif-left {
+        width: 85px;
+        height: 85px;
+    }
+
+    #header-title {
+        font-size: 2.65rem !important;
+        letter-spacing: 4px;
+    }
+
+    #header-subtitle {
+        font-size: 1.1rem !important;
+        line-height: 1.4;
+    }
+
+    /* НАВИГАЦИЯ */
+    nav {
+        padding: 12px 8px;
+        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    nav button {
+        padding: 10px 12px;
+        font-size: 0.93rem;
+        border-radius: 10px;
+    }
+
+    /* ПРОФИЛЬ */
+    .profile-container {
+        top: 14px !important;
+        right: 14px !important;
+    }
+
+    .profile-avatar {
+        width: 42px;
+        height: 42px;
+        border: 2.8px solid var(--neon);
+    }
+
+    /* Основные блоки */
+    .section {
+        padding: 22px 12px !important;
+    }
+
+    h2 {
+        font-size: 2.1rem !important;
+        margin-bottom: 22px;
+    }
+
+    .poll-question {
+        font-size: 1.7rem !important;
+        margin: 20px 0 25px;
+    }
+
+    /* Карточки */
+    .stats-card, .option, label.option-label {
+        padding: 14px;
+        margin: 10px 0;
+        border-radius: 14px;
+    }
+
+    /* Кнопки */
+    button.main, .ai-btn, .save-btn {
+        padding: 16px 25px !important;
+        font-size: 1.2rem !important;
+        width: 96% !important;
+        max-width: 340px;
+        margin: 20px auto;
+    }
+
+    /* Формы */
+    input, textarea {
+        padding: 14px 16px;
+        font-size: 1.05rem;
+        border-radius: 10px;
+    }
+
+    /* Панели снизу */
+    #languagePanel, #colorPanel {
+        right: 10px;
+        bottom: 10px;
+        width: 92%;
+        max-width: 280px;
+    }
+
+    .color-option {
+        width: 48px;
+        height: 48px;
+    }
+
+    /* Онлайн опросы */
+    .public-card {
+        padding: 16px;
+    }
+
+    .online-timer {
+        font-size: 1.25rem;
+    }
+}
+
+/* Очень маленькие экраны (iPhone SE, старые Android) */
+@media (max-width: 480px) {
+    #header-title {
+        font-size: 2.4rem !important;
+    }
+
+    .logo-gif-left {
+        width: 78px;
+        height: 78px;
+    }
+
+    nav button {
+        padding: 9px 10px;
+        font-size: 0.88rem;
+    }
+
+    .profile-container {
+        top: 12px !important;
+        right: 12px !important;
+    }
+
+    .profile-avatar {
+        width: 38px;
+        height: 38px;
+    }
+}
+
   </style>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
@@ -1261,7 +1415,7 @@ body[data-theme="fire"] .bar-fill {
   <div id="noMultiPolls" class="message hidden">Пока нет мульти-опросов. Создайте первый! 🔀</div>
 </div>
 
-<!-- === СОЗДАНИЕ ГЛОБАЛЬНОГО ОПРОСА === -->
+<!-- === СОЗДАНИЕ ГЛОБАЛЬНОГО ОПРОСА (ОПТИМИЗИРОВАНО) === -->
 <div id="create-global" class="section">
   <h2 style="color:var(--yellow);">Создать Глобальный Опрос 🔥</h2>
   <div style="background:rgba(20,20,30,0.95); padding:40px; border-radius:24px; border:3px solid var(--yellow); max-width:900px; margin:0 auto;">
@@ -1274,6 +1428,15 @@ body[data-theme="fire"] .bar-fill {
     <button onclick="addGlobalOption()" style="background:#222; color:var(--neon); padding:14px 32px; border:2px solid var(--dim); border-radius:12px; margin:20px 0;">
       + Добавить вариант
     </button>
+
+    <h4 style="margin:25px 0 10px; color:var(--dim);">⏳ Срок действия опроса</h4>
+    <select id="globalDuration" style="width:100%; padding:16px; background:#222; color:#fff; border:2px solid var(--dim); border-radius:12px; font-size:1.2rem; margin-bottom:25px;">
+      <option value="86400000">1 день</option>
+      <option value="259200000" selected>3 дня</option>
+      <option value="604800000">7 дней</option>
+      <option value="1296000000">15 дней</option>
+      <option value="2592000000">30 дней</option>
+    </select>
     
     <button onclick="publishGlobalPoll()" class="main" style="width:100%; background:linear-gradient(135deg,#00ff88,#00ccff);">
       🚀 Опубликовать в Опросы
@@ -1882,11 +2045,20 @@ function logout() {
   showSection('home');
   alert('Вы вышли из аккаунта');
 }
+
 function checkLogin() {
   const logged = localStorage.getItem('loggedIn') === 'true';
-  document.getElementById('loginBtn').style.display = logged ? 'none' : 'inline-block';
-  document.getElementById('logoutBtn').style.display = logged ? 'inline-block' : 'none';
+  
+  const loginBtn = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  
+  if (loginBtn) loginBtn.style.display = logged ? 'none' : 'inline-block';
+  if (logoutBtn) logoutBtn.style.display = logged ? 'inline-block' : 'none';
+
+  // Сразу обновляем профиль
+  updateProfileUI();
 }
+
 function getMyPolls() {
   return JSON.parse(localStorage.getItem(`myPolls_${getCurrentUser()}`) || '[]');
 }
@@ -2562,35 +2734,39 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// ======================== ПРОФИЛЬ ========================
 function updateProfileUI() {
   const logged = localStorage.getItem('loggedIn') === 'true';
-  const profileContainer = document.getElementById('profileContainer');
-  
-  if (profileContainer) {
-    profileContainer.style.display = 'block'; // всегда показываем
-  }
-  
-  if (logged) {
-    const username = localStorage.getItem('user') || 'Гость';
-    const email = localStorage.getItem('userEmail') || '';
-   
-    document.getElementById('profile-name').textContent = username;
-    document.getElementById('profile-email').textContent = email;
+  const username = localStorage.getItem('user') || 'Гость';
+  const email = localStorage.getItem('userEmail') || '';
+  const avatarUrl = localStorage.getItem('userAvatar') || 'https://i.pravatar.cc/150?u=default';
 
-    const savedAvatar = localStorage.getItem('userAvatar');
-    if (savedAvatar) {
-      document.getElementById('avatar').src = savedAvatar;
-      const dropdown = document.getElementById('dropdown-avatar');
-      if (dropdown) dropdown.src = savedAvatar;
-    }
-  } else {
-    document.getElementById('avatar').src = 'https://i.pravatar.cc/150?u=default';
-    const dropdown = document.getElementById('dropdown-avatar');
-    if (dropdown) dropdown.src = 'https://i.pravatar.cc/150?u=default';
-    document.getElementById('profile-name').textContent = 'Гость';
-    document.getElementById('profile-email').textContent = 'Не авторизован';
-  }
+  // Основная аватарка в шапке
+  const mainAvatar = document.getElementById('avatar');
+  if (mainAvatar) mainAvatar.src = avatarUrl;
+
+  // Аватарка в выпадающем меню профиля
+  const dropdownAvatar = document.getElementById('dropdown-avatar');
+  if (dropdownAvatar) dropdownAvatar.src = avatarUrl;
+
+  // Имя и email в профиле
+  const profileName = document.getElementById('profile-name');
+  const profileEmail = document.getElementById('profile-email');
+  if (profileName) profileName.textContent = username;
+  if (profileEmail) profileEmail.textContent = email;
+
+  // Вкладка Friends
+  const friendsName = document.getElementById('friends-name');
+  const friendsEmail = document.getElementById('friends-email');
+  const friendsAvatar = document.getElementById('friends-avatar');
+  if (friendsName) friendsName.textContent = username;
+  if (friendsEmail) friendsEmail.textContent = email;
+  if (friendsAvatar) friendsAvatar.src = avatarUrl;
+
+  // Кнопки входа/выхода
+  const loginBtn = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (loginBtn) loginBtn.style.display = logged ? 'none' : 'inline-block';
+  if (logoutBtn) logoutBtn.style.display = logged ? 'inline-block' : 'none';
 }
 
 // ==================== ОБНОВЛЕНИЕ ЛИЧКИ ====================
@@ -3300,7 +3476,7 @@ function closeQrModal() {
   document.getElementById('qrModal').style.display = 'none';
 }
 
-// ===================== ГЛОБАЛЬНЫЕ ОПРОСЫ =====================
+// ===================== ГЛОБАЛЬНЫЕ ОПРОСЫ (ОПТИМИЗИРОВАНО) =====================
 let globalOptionsCount = 0;
 
 function addGlobalOption() {
@@ -3322,6 +3498,11 @@ async function publishGlobalPoll() {
 
   if (options.length < 2) return alert('Нужно минимум 2 варианта!');
 
+  const durationMs = parseInt(document.getElementById('globalDuration').value);
+  const endTime = Date.now() + durationMs;
+
+  const creatorAvatar = localStorage.getItem('userAvatar') || `https://i.pravatar.cc/150?u=${getCurrentUser()}`;
+
   const pollData = {
     title,
     desc: desc || '',
@@ -3329,19 +3510,28 @@ async function publishGlobalPoll() {
     votes: Array(options.length).fill(0),
     totalVotes: 0,
     creator: getCurrentUser(),
-    creatorAvatar: localStorage.getItem('userAvatar') || `https://i.pravatar.cc/150?u=${getCurrentUser()}`,
+    creatorAvatar: creatorAvatar,           // ← ОБЯЗАТЕЛЬНО
+    creatorEmail: localStorage.getItem('userEmail') || 'guest',
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    endTime: endTime,                       // ← Добавлено
     votedUsers: []
   };
 
   try {
-    await db.collection('globalPolls').add(pollData);   // используем .add()
-    alert('✅ Опрос успешно опубликован!');
+    await db.collection('globalPolls').add(pollData);
+    alert('✅ Глобальный опрос опубликован!');
+    
+    // Очистка
     document.getElementById('globalPollTitle').value = '';
     document.getElementById('globalPollDesc').value = '';
     document.getElementById('globalOptionsContainer').innerHTML = '';
     globalOptionsCount = 0;
-    addGlobalOption(); addGlobalOption();
+    addGlobalOption(); 
+    addGlobalOption();
+    
+    if (document.getElementById('polls').style.display === 'block') {
+      loadGlobalPolls();
+    }
   } catch(e) {
     alert('Ошибка публикации');
     console.error(e);
@@ -3350,18 +3540,30 @@ async function publishGlobalPoll() {
 
 async function loadGlobalPolls() {
   const container = document.getElementById('pollsContainer');
-  container.innerHTML = '<p style="text-align:center;padding:80px;color:#aaa;">Загрузка опросов...</p>';
+  container.innerHTML = '<p style="text-align:center;padding:80px;color:#aaa;">Загрузка...</p>';
 
   try {
     const snapshot = await db.collection('globalPolls').orderBy('createdAt', 'desc').get();
     let html = '';
+    const now = Date.now();
+    const currentUser = getCurrentUser();
+    const currentEmail = localStorage.getItem('userEmail') || 'guest';
 
     snapshot.forEach(doc => {
       const p = doc.data();
       const pollId = doc.id;
+      
+      // Автофильтр по времени
+      if (p.endTime && now > p.endTime) {
+        // Можно удалить старый, но оставляем для истории
+        return;
+      }
+
       const total = p.totalVotes || 0;
-      const currentEmail = localStorage.getItem('userEmail') || 'guest';
       const hasVoted = p.votedUsers && p.votedUsers.includes(currentEmail);
+      const remaining = p.endTime ? Math.max(0, p.endTime - now) : 0;
+      const daysLeft = Math.floor(remaining / 86400000);
+      const hoursLeft = Math.floor((remaining % 86400000) / 3600000);
 
       let optionsHtml = '';
       p.options.forEach((opt, i) => {
@@ -3380,24 +3582,55 @@ async function loadGlobalPolls() {
           </div>`;
       });
 
+      const canDelete = p.creator === currentUser;
+
       html += `
-        <div class="stats-card">
+        <div class="stats-card" style="position:relative;">
           <div style="display:flex; align-items:center; gap:12px; margin-bottom:15px;">
-            <img src="${p.creatorAvatar}" style="width:50px; height:50px; border-radius:50%; border:2px solid var(--neon);">
-            <strong>${p.creator}</strong>
+            <img src="${p.creatorAvatar || 'https://i.pravatar.cc/150?u=' + encodeURIComponent(p.creator)}" 
+                 style="width:50px; height:50px; border-radius:50%; border:2px solid var(--neon);">
+            <div>
+              <strong>${p.creator}</strong>
+              <small style="color:#aaa; display:block;">${p.date || ''}</small>
+            </div>
           </div>
+          
           <h3 style="color:var(--neon);">${p.title}</h3>
+          ${p.desc ? `<p style="color:#aaa;">${p.desc}</p>` : ''}
+          
+          <div class="online-timer" style="margin:12px 0; font-size:1.1rem;">
+            ⏳ Осталось: ${daysLeft}д ${hoursLeft}ч
+          </div>
+          
           ${optionsHtml}
+          
           ${hasVoted ? 
-            `<button class="main" disabled>✅ Вы уже проголосовали</button>` : 
-            `<button onclick="castGlobalVote('${pollId}')" class="main">Проголосовать</button>`
+            `<button class="main" disabled style="width:100%;">✅ Вы уже проголосовали</button>` : 
+            `<button onclick="castGlobalVote('${pollId}')" class="main" style="width:100%;">Проголосовать 🗳️</button>`
           }
+          
+          ${canDelete ? 
+            `<button onclick="deleteGlobalPoll('${pollId}'); event.stopImmediatePropagation();" 
+                     class="delete-btn" style="top:15px;right:15px;">×</button>` : ''}
         </div>`;
     });
 
-    container.innerHTML = html || '<p style="text-align:center; padding:80px; color:#aaa;">Пока нет опросов. Создайте первый!</p>';
+    container.innerHTML = html || '<p style="text-align:center; padding:80px; color:#aaa;">Пока нет активных опросов. Создайте первый!</p>';
   } catch(e) {
-    container.innerHTML = '<p style="color:red;text-align:center;">Ошибка загрузки</p>';
+    console.error(e);
+    container.innerHTML = '<p style="color:red;text-align:center;">Ошибка загрузки Firebase</p>';
+  }
+}
+
+async function deleteGlobalPoll(pollId) {
+  if (!confirm('Удалить этот глобальный опрос?')) return;
+
+  try {
+    await db.collection('globalPolls').doc(pollId).delete();
+    alert('Опрос удалён ✅');
+    loadGlobalPolls();
+  } catch(e) {
+    alert('Ошибка удаления');
   }
 }
 
@@ -3439,7 +3672,7 @@ window.showSection = function(section) {
 
 // ======================== ЗАПУСК ========================
 window.onload = () => {
-  
+
   // Автооткрытие раздела онлайн, если в ссылке есть #online
   if (window.location.hash === '#online') {
     setTimeout(() => {
@@ -3485,10 +3718,14 @@ window.onload = () => {
     addPublicOption();
   }
 
+loadSavedPolls();
+
   showSection('home');
   switchTab(0);
-  updateProfileUI();   
-  updateFriendsUI();           // ←←← Добавили
+ setTimeout(updateProfileUI, 300);
+  setTimeout(updateProfileUI, 800);   
+ 
+ updateFriendsUI();           // ←←← Добавили
 
 loadMultiPolls();
 
