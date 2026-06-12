@@ -904,157 +904,77 @@ body[data-theme="fire"] .bar-fill {
   box-shadow: 0 0 25px rgba(0, 255, 200, 0.4);
 }
 
-/* ====================== УЛУЧШЕННЫЙ МОБИЛЬНЫЙ АДАПТИВ ====================== */
+/* ===================== СПЕЦИАЛЬНЫЙ МОБИЛЬНЫЙ ФИКС ДЛЯ ОПРОСОВ ===================== */
 
 @media (max-width: 768px) {
-    body {
-        padding: 10px 6px;
-        font-size: 15.5px;
-    }
 
-    .container {
-        border-radius: 18px;
-        margin: 8px auto;
-        box-shadow: 0 0 60px rgba(255,234,128,0.4);
-    }
-
-    /* ШАПКА */
-    header {
-        padding: 45px 15px 35px !important;
-    }
-
-    .header-logo-wrapper {
-        gap: 15px;
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .logo-gif-left {
-        width: 85px;
-        height: 85px;
-    }
-
-    #header-title {
-        font-size: 2.65rem !important;
-        letter-spacing: 4px;
-    }
-
-    #header-subtitle {
-        font-size: 1.1rem !important;
-        line-height: 1.4;
-    }
-
-    /* НАВИГАЦИЯ */
-    nav {
-        padding: 12px 8px;
-        gap: 6px;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    nav button {
-        padding: 10px 12px;
-        font-size: 0.93rem;
-        border-radius: 10px;
-    }
-
-    /* ПРОФИЛЬ */
-    .profile-container {
-        top: 14px !important;
-        right: 14px !important;
-    }
-
-    .profile-avatar {
-        width: 42px;
-        height: 42px;
-        border: 2.8px solid var(--neon);
-    }
-
-    /* Основные блоки */
-    .section {
-        padding: 22px 12px !important;
-    }
-
-    h2 {
-        font-size: 2.1rem !important;
-        margin-bottom: 22px;
-    }
-
-    .poll-question {
-        font-size: 1.7rem !important;
-        margin: 20px 0 25px;
-    }
-
-    /* Карточки */
-    .stats-card, .option, label.option-label {
-        padding: 14px;
-        margin: 10px 0;
-        border-radius: 14px;
-    }
-
-    /* Кнопки */
-    button.main, .ai-btn, .save-btn {
-        padding: 16px 25px !important;
-        font-size: 1.2rem !important;
-        width: 96% !important;
-        max-width: 340px;
-        margin: 20px auto;
-    }
-
-    /* Формы */
-    input, textarea {
-        padding: 14px 16px;
-        font-size: 1.05rem;
-        border-radius: 10px;
-    }
-
-    /* Панели снизу */
-    #languagePanel, #colorPanel {
-        right: 10px;
-        bottom: 10px;
-        width: 92%;
-        max-width: 280px;
-    }
-
-    .color-option {
-        width: 48px;
-        height: 48px;
-    }
-
-    /* Онлайн опросы */
+    /* Общие карточки в проблемных вкладках */
+    #polls .stats-card,
+    #pollsContainer .stats-card,
+    #online-poll-list .stats-card,
+    #multiPollsList .stats-card,
     .public-card {
-        padding: 16px;
+        padding: 18px 16px !important;
+        margin: 12px 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
     }
 
+    /* Убираем сильное сжатие */
+    .stats-grid,
+    #pollsContainer,
+    #online-poll-list,
+    #multiPollsList {
+        grid-template-columns: 1fr !important;
+        gap: 14px !important;
+    }
+
+    /* Улучшаем внутреннее содержимое карточек */
+    .stats-card h3,
+    .stats-card h4 {
+        font-size: 1.35rem !important;
+        margin-bottom: 12px;
+    }
+
+    .stats-card p {
+        font-size: 1.05rem;
+        line-height: 1.45;
+    }
+
+    /* Таймеры и кнопки */
     .online-timer {
-        font-size: 1.25rem;
+        font-size: 1.2rem !important;
+        padding: 8px 0;
+    }
+
+    button {
+        font-size: 1.1rem !important;
+        padding: 14px 20px !important;
+    }
+
+    /* Аватарки в карточках */
+    .stats-card img {
+        width: 46px !important;
+        height: 46px !important;
+    }
+
+    /* Убираем лишние отступы слева */
+    .stats-card > div,
+    .stats-card > h3,
+    .stats-card > p {
+        padding-left: 0 !important;
     }
 }
 
-/* Очень маленькие экраны (iPhone SE, старые Android) */
+/* Ещё меньше экраны */
 @media (max-width: 480px) {
-    #header-title {
-        font-size: 2.4rem !important;
+    .stats-card {
+        padding: 16px 14px !important;
     }
-
-    .logo-gif-left {
-        width: 78px;
-        height: 78px;
-    }
-
-    nav button {
-        padding: 9px 10px;
-        font-size: 0.88rem;
-    }
-
-    .profile-container {
-        top: 12px !important;
-        right: 12px !important;
-    }
-
-    .profile-avatar {
-        width: 38px;
-        height: 38px;
+    
+    .stats-card h3 {
+        font-size: 1.25rem !important;
     }
 }
 
