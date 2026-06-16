@@ -994,8 +994,30 @@ body[data-theme="fire"] .bar-fill {
     }
 }
 
+/* Стили для графиков в результатах */
+.vote-results {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+  margin: 35px 0;
+}
+
+.chart-box {
+  background: rgba(15,15,25,0.95);
+  border: 3px solid var(--dim);
+  border-radius: 22px;
+  padding: 20px;
+  box-shadow: 0 0 50px rgba(255,234,128,0.4);
+}
+
+@media (max-width: 768px) {
+  .vote-results { 
+    grid-template-columns: 1fr; 
+  }
+}
   </style>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <div class="container">
@@ -1792,6 +1814,46 @@ function changeLanguage(lang) {
   toggleLanguagePanel();
 }
 
+// ======================== СИСТЕМА МОДЕРАЦИИ (АНТИ-МАТ) ========================
+const profanityList = [
+  "сука", "блять", "бля", "пизда", "хуй", "уебище", "чмо", "нахуй", "сучка", 
+  "гандон", "ахуел", "ахуевший", "писька", "еблан", "хуярь", "пиздабол", 
+  "вагина", "хуесос", "ебать", "ебнулся", "пидор", "пидорас", "мудак", 
+  "мудила", "залупа", "ебало", "ебальник", "хуесосина", "блядь", "ебаный",
+  "наеб", "поебал", "отъебись", "суки", "бляди", "пиздец", "хуйня", "херня",
+  // Добавь ещё слова если нужно
+];
+
+function containsProfanity(text) {
+  if (!text) return false;
+  const lowerText = text.toLowerCase().replace(/[^а-яa-z0-9]/g, '');
+  
+  for (let word of profanityList) {
+    if (lowerText.includes(word.toLowerCase())) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function checkPollForProfanity(title, desc, options) {
+  if (containsProfanity(title)) {
+    alert('❌ Опрос отклонён!\n\nВ названии обнаружены нецензурные выражения.');
+    return false;
+  }
+  if (desc && containsProfanity(desc)) {
+    alert('❌ Опрос отклонён!\n\nВ описании обнаружены нецензурные выражения.');
+    return false;
+  }
+  for (let opt of options) {
+    if (containsProfanity(opt)) {
+      alert('❌ Опрос отклонён!\n\nВ вариантах ответов обнаружены нецензурные выражения.');
+      return false;
+    }
+  }
+  return true;
+}
+
 function toggleLanguagePanel() {
   const panel = document.getElementById('languagePanel');
   panel.style.display = (panel.style.display === 'flex') ? 'none' : 'flex';
@@ -1968,16 +2030,37 @@ function deletePoll(pollId) {
 
   console.log(`Опрос ${pollId} удалён для пользователя ${user}`);
 }
+
 function showSection(sectionId) {
-  if (sectionId === 'create' && !localStorage.getItem('loggedIn')) sectionId = 'login';
-  
+  const loggedIn = localStorage.getItem('loggedIn') === 'true';
+
+  // Разрешённые разделы без авторизации
+  const publicSections = ['home', 'login'];
+
+  if (!loggedIn && !publicSections.includes(sectionId)) {
+    alert('❌ Для доступа к этому разделу необходимо войти в аккаунт!');
+    sectionId = 'login';
+  }
+
+  // Убираем активный класс у всех кнопок
   document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
+
+  // Активируем кнопку (если она есть)
   const activeBtn = document.querySelector(`nav button[onclick="showSection('${sectionId}')"]`);
   if (activeBtn) activeBtn.classList.add('active');
 
+  // Скрываем все секции
   document.querySelectorAll('.section').forEach(sec => sec.style.display = 'none');
-  document.getElementById(sectionId).style.display = 'block';
 
+  // Показываем нужную
+  const section = document.getElementById(sectionId);
+  if (section) {
+    section.style.display = 'block';
+  } else {
+    document.getElementById('home').style.display = 'block';
+  }
+
+  // Загрузка данных в зависимости от раздела
   if (sectionId === 'vote') loadPoll();
   if (sectionId === 'results') showResults();
   if (sectionId === 'saved') loadSavedPolls();
@@ -1985,13 +2068,12 @@ function showSection(sectionId) {
   if (sectionId === 'create') loadEditPolls();
   if (sectionId === 'online') loadPublicPolls();
   if (sectionId === 'online-stats') loadOnlineStats();
-
-  // ←←← Добавь эту строку:
   if (sectionId === 'friends') {
     loadFriendsList();
     updateFriendsUI();
   }
 }
+
 function getCurrentUser() { return localStorage.getItem('user') || 'Гость'; }
 function logout() {
   if (!confirm('Выйти из аккаунта?')) return;
@@ -2025,8 +2107,16 @@ function checkLogin() {
   if (loginBtn) loginBtn.style.display = logged ? 'none' : 'inline-block';
   if (logoutBtn) logoutBtn.style.display = logged ? 'inline-block' : 'none';
 
-  // Сразу обновляем профиль
   updateProfileUI();
+
+  // Если пользователь не залогинен — показываем только главную
+  if (!logged) {
+    document.querySelectorAll('.section').forEach(sec => {
+      if (sec.id !== 'home' && sec.id !== 'login') {
+        sec.style.display = 'none';
+      }
+    });
+  }
 }
 
 function getMyPolls() {
@@ -2052,6 +2142,9 @@ function createPoll() {
   const desc = document.getElementById('pollDesc').value.trim();
   const options = Array.from(document.querySelectorAll('.opt-input')).map(inp => inp.value.trim()).filter(v => v);
   if (options.length < 2) return alert('Минимум 2 варианта!');
+
+if (!checkPollForProfanity(title, desc, options)) return;
+
   const poll = {
     id: Date.now(),
     title, desc, options,
@@ -2073,6 +2166,8 @@ function savePoll() {
   const desc = document.getElementById('pollDesc').value.trim();
   const options = Array.from(document.querySelectorAll('.opt-input')).map(inp => inp.value.trim()).filter(v => v);
   if (options.length < 2) return alert('Минимум 2 варианта!');
+
+if (!checkPollForProfanity(title, desc, options)) return;
 
   const poll = {
     id: Date.now(), title, desc, options,
@@ -2406,6 +2501,8 @@ function createPublicPoll() {
   const createdAt = Date.now();
 
   const creatorAvatar = localStorage.getItem('userAvatar') || 'https://i.pravatar.cc/150?u=' + getCurrentUser();
+
+if (!checkPollForProfanity(title, desc, options)) return;
 
   const poll = {
     id: Date.now(),
@@ -3172,7 +3269,7 @@ function addOptionToMultiPollInternal(container) {
   container.appendChild(div);
 }
 
-function createMultiPoll() {
+async function createMultiPoll() {
   const title = document.getElementById('multiTitle').value.trim();
   if (!title) return alert('Введите название пакета!');
 
@@ -3187,216 +3284,284 @@ function createMultiPoll() {
   pollDivs.forEach((div, i) => {
     const pTitle = div.querySelector('.multi-poll-title').value.trim();
     const pDesc = div.querySelector('.multi-poll-desc').value.trim();
-    const opts = Array.from(div.querySelectorAll('.multi-opt-input')).map(inp => inp.value.trim()).filter(v => v);
+    const opts = Array.from(div.querySelectorAll('.multi-opt-input'))
+                      .map(inp => inp.value.trim()).filter(v => v);
 
     if (!pTitle || opts.length < 2) {
       alert(`Опрос №${i+1} должен иметь название и минимум 2 варианта!`);
       isValid = false;
     }
-    multiPolls.push({ id: Date.now()+i, title: pTitle, desc: pDesc, options: opts, votes: Array(opts.length).fill(0), totalVotes: 0 });
+    multiPolls.push({
+      title: pTitle,
+      desc: pDesc || '',
+      options: opts,
+      votes: Array(opts.length).fill(0),
+      totalVotes: 0
+    });
   });
 
   if (!isValid) return;
 
+  if (!localStorage.getItem('loggedIn')) {
+    return alert('❌ Сначала войдите в аккаунт!');
+  }
+
   const duration = parseInt(document.getElementById('multiDuration').value);
+  const endTime = Date.now() + duration;
+
   const multiPoll = {
-    id: Date.now(),
-    title, desc,
+    title,
+    desc: desc || '',
     polls: multiPolls,
     creator: getCurrentUser(),
     creatorAvatar: localStorage.getItem('userAvatar') || `https://i.pravatar.cc/150?u=${getCurrentUser()}`,
-    date: new Date().toLocaleString('ru-RU'),
-    createdAt: Date.now(),
-    endTime: Date.now() + duration,
+    creatorEmail: localStorage.getItem('userEmail') || 'guest',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    endTime: endTime,
     votedUsers: []
   };
 
-  let list = JSON.parse(localStorage.getItem('multiPolls') || '[]');
-  list.unshift(multiPoll);
-  localStorage.setItem('multiPolls', JSON.stringify(list));
+  try {
+    await db.collection('multiPolls').add(multiPoll);
+    alert('✅ Мульти-опрос успешно опубликован!');
 
-  alert('✅ Мульти-опрос успешно опубликован!');
-  document.getElementById('multiTitle').value = '';
-  document.getElementById('multiDesc').value = '';
-  document.getElementById('multiPollsContainer').innerHTML = '';
-  multiPollCounter = 0;
-  loadMultiPolls();
+    document.getElementById('multiTitle').value = '';
+    document.getElementById('multiDesc').value = '';
+    document.getElementById('multiPollsContainer').innerHTML = '';
+    multiPollCounter = 0;
+
+    loadMultiPolls();
+  } catch(e) {
+    console.error(e);
+    alert('❌ Ошибка публикации: ' + e.message);
+  }
 }
 
-function loadMultiPolls() {
-  let polls = JSON.parse(localStorage.getItem('multiPolls') || '[]');
+async function loadMultiPolls() {
   const container = document.getElementById('multiPollsList');
   const noMulti = document.getElementById('noMultiPolls');
 
-  container.innerHTML = '';
-  if (polls.length === 0) {
-    noMulti.classList.remove('hidden');
-    return;
+  container.innerHTML = '<p style="text-align:center; padding:60px; color:#aaa;">Загрузка мульти-опросов...</p>';
+
+  try {
+    const snapshot = await db.collection('multiPolls')
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    let html = '';
+    const now = Date.now();
+    const currentUser = getCurrentUser();
+    const currentEmail = localStorage.getItem('userEmail') || 'guest';
+
+    snapshot.forEach(doc => {
+      const mp = doc.data();
+      const multiId = doc.id;
+
+      if (mp.endTime && now > mp.endTime) return; // старые не показываем
+
+      const remaining = Math.max(0, mp.endTime - now);
+      const h = Math.floor(remaining / 3600000);
+      const m = Math.floor((remaining % 3600000) / 60000);
+
+      const canDelete = mp.creator === currentUser;
+
+      html += `
+        <div class="stats-card public-card" style="position:relative;">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <img src="${mp.creatorAvatar}" style="width:52px;height:52px;border-radius:50%;border:3px solid var(--neon);">
+            <div>
+              <strong style="color:var(--yellow);">${mp.creator}</strong><br>
+              <small>${mp.desc || ''}</small>
+            </div>
+          </div>
+          <h3>${mp.title}</h3>
+          <p style="color:#aaa;">${mp.polls.length} опросов в пакете</p>
+          <div class="online-timer">⏳ ${h}ч ${m}м</div>
+
+          <button onclick="openMultiVote('${multiId}')" 
+                  style="width:100%; padding:16px; margin-top:12px; background:var(--neon); color:#000; border:none; border-radius:12px; font-weight:bold;">
+            Голосовать в пакете 🔀
+          </button>
+
+          ${canDelete ? `<button onclick="deleteMultiPoll('${multiId}'); event.stopImmediatePropagation();" class="delete-btn">×</button>` : ''}
+        </div>`;
+    });
+
+    container.innerHTML = html || '<p style="text-align:center; padding:80px; color:#aaa;">Пока нет мульти-опросов. Создайте первый!</p>';
+    noMulti.classList.add('hidden');
+  } catch(e) {
+    console.error(e);
+    container.innerHTML = '<p style="color:red; text-align:center;">Ошибка загрузки Firebase</p>';
   }
-  noMulti.classList.add('hidden');
-
-  polls = polls.filter(p => Date.now() < p.endTime);
-  localStorage.setItem('multiPolls', JSON.stringify(polls));
-
-  polls.forEach(mp => {
-    const rem = Math.max(0, mp.endTime - Date.now());
-    const h = Math.floor(rem / 3600000);
-    const m = Math.floor((rem % 3600000) / 60000);
-      const card = document.createElement('div');
-    card.className = 'stats-card public-card';
-    card.innerHTML = `
-      <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-        <img src="${mp.creatorAvatar}" style="width:48px;height:48px;border-radius:50%;border:2px solid var(--neon);">
-        <div><strong>${mp.creator}</strong><br><small>${mp.date}</small></div>
-      </div>
-      <h3>${mp.title}</h3>
-      <p style="color:#aaa;">${mp.desc || ''} • ${mp.polls.length} опросов</p>
-      <div style="color:var(--yellow); margin:12px 0;">⏳ ${h}ч ${m}м</div>
-      
-      <button onclick="openMultiVote(${mp.id})" style="width:100%; padding:16px; background:var(--neon); color:#000; border:none; border-radius:12px; font-weight:bold; margin-bottom:8px;">
-        Голосовать в пакете 🔀
-      </button>
-      
-      <button onclick="showQrCode(${mp.id}); event.stopImmediatePropagation();" 
-              style="width:100%; padding:12px; background:#222; color:var(--yellow); border:2px solid var(--dim); border-radius:12px; font-weight:bold;">
-        📱 Показать QR-код
-      </button>
-      
-      ${mp.creator === getCurrentUser() ? `<button onclick="deleteMultiPoll(${mp.id}); event.stopImmediatePropagation();" class="delete-btn">×</button>` : ''}
-    `;
-    container.appendChild(card);
-  });
 }
 
-function deleteMultiPoll(id) {
-  if (!confirm('Удалить мульти-опрос?')) return;
-  let polls = JSON.parse(localStorage.getItem('multiPolls') || '[]');
-  polls = polls.filter(p => p.id !== id);
-  localStorage.setItem('multiPolls', JSON.stringify(polls));
-  loadMultiPolls();
+async function deleteMultiPoll(multiId) {
+  if (!confirm('Удалить этот мульти-опрос?')) return;
+  try {
+    await db.collection('multiPolls').doc(multiId).delete();
+    alert('Мульти-опрос удалён');
+    loadMultiPolls();
+  } catch(e) {
+    alert('Ошибка удаления');
+  }
 }
 
-let currentMultiId = null;
+// ======================== ГОЛОСОВАНИЕ В МУЛЬТИ ========================
 
-function openMultiVote(id) {
-  const pollsData = JSON.parse(localStorage.getItem('multiPolls') || '[]');
-  const mp = pollsData.find(p => p.id === id);
-  if (!mp) return alert('Опрос не найден');
-
-  currentMultiId = id;
+async function openMultiVote(multiId) {
+  currentMultiId = multiId;
   const modal = document.getElementById('multiVoteModal');
   const content = document.getElementById('multiVoteContent');
-  const submitBtn = document.getElementById('submitMultiBtn');
-  const resultsBtn = document.getElementById('viewMultiResultsBtn');
 
-  const email = localStorage.getItem('userEmail');
-  const alreadyVoted = mp.votedUsers && mp.votedUsers.includes(email);
+  try {
+    const doc = await db.collection('multiPolls').doc(multiId).get();
+    if (!doc.exists) return alert('Опрос не найден');
 
-  let html = `<h2 style="text-align:center;color:var(--neon);margin-bottom:15px;">${mp.title}</h2>`;
-  if (mp.desc) html += `<p style="text-align:center;color:#aaa;margin-bottom:25px;">${mp.desc}</p>`;
+    let mp = doc.data();
 
-  mp.polls.forEach((poll, i) => {
-    html += `
-      <div style="background:#1a1a1a; padding:20px; border-radius:16px; margin-bottom:20px; border:2px solid var(--dim);">
-        <div class="poll-question" style="font-size:1.6rem; margin-bottom:15px;">${poll.title}</div>
-        <div id="mopts-${i}"></div>
-      </div>`;
-  });
+    if (!mp || !Array.isArray(mp.polls) || mp.polls.length === 0) {
+      content.innerHTML = `<p style="color:red; text-align:center; padding:50px; font-size:1.3rem;">
+        Ошибка загрузки данных опроса.<br>
+        Попробуйте создать новый мульти-опрос.
+      </p>`;
+      modal.style.display = 'flex';
+      return;
+    }
 
-  content.innerHTML = html;
+    const currentEmail = localStorage.getItem('userEmail') || 'guest';
+    const alreadyVoted = mp.votedUsers && mp.votedUsers.includes(currentEmail);
 
-  if (alreadyVoted) {
-    submitBtn.style.display = 'none';
-    resultsBtn.style.display = 'none';
-    showMultiResults(mp);           // сразу показываем результаты
-  } else {
-    // Показываем варианты для голосования
+    let html = `<h2 style="text-align:center;color:var(--neon);">${mp.title}</h2>`;
+    if (mp.desc) html += `<p style="text-align:center;color:#aaa;">${mp.desc}</p>`;
+
+    mp.polls.forEach((poll, i) => {
+      html += `
+        <div style="background:#1a1a1a; padding:20px; border-radius:16px; margin:20px 0; border:2px solid var(--dim);">
+          <div class="poll-question">${poll.title}</div>
+          <div id="mopts-${i}"></div>
+        </div>`;
+    });
+
+    content.innerHTML = html;
+
     mp.polls.forEach((poll, i) => {
       const div = document.getElementById(`mopts-${i}`);
-      div.innerHTML = '';
+      const total = poll.totalVotes || 0;
+
       poll.options.forEach((opt, j) => {
-        div.innerHTML += `
-          <label class="option-label" style="margin:10px 0; padding:16px;">
-            <input type="radio" name="mpoll-${i}" value="${j}" style="margin-right:15px;"> ${opt}
+        const votes = Array.isArray(poll.votes) ? (poll.votes[j] || 0) : 0;
+        const percent = total ? Math.round((votes / total) * 100) : 0;
+
+        const optionHtml = alreadyVoted ? '' : `
+          <label class="option-label" style="margin:8px 0; padding:12px;">
+            <input type="radio" name="mpoll-${i}" value="${j}"> ${opt}
           </label>`;
+
+        div.innerHTML += `
+          <div style="margin:12px 0; padding:12px; background:#111; border-radius:12px;">
+            ${optionHtml}
+            <div style="margin-top:8px;">
+              <strong>${opt}</strong> — ${votes} (${percent}%)
+              <div class="results-bar"><div class="bar-fill" style="width:${percent}%"></div></div>
+            </div>
+          </div>`;
       });
     });
-    submitBtn.style.display = 'block';
-    resultsBtn.style.display = 'block';
-  }
 
-  modal.style.display = 'flex';
+    document.getElementById('submitMultiBtn').style.display = alreadyVoted ? 'none' : 'block';
+    document.getElementById('viewMultiResultsBtn').style.display = 'block';
+
+    modal.style.display = 'flex';
+  } catch(e) {
+    console.error(e);
+    alert('Ошибка загрузки опроса');
+  }
 }
 
 function closeMultiVoteModal() {
   document.getElementById('multiVoteModal').style.display = 'none';
 }
 
-function submitMultiVote() {
-  const polls = JSON.parse(localStorage.getItem('multiPolls') || '[]');
-  const idx = polls.findIndex(p => p.id === currentMultiId);
-  if (idx === -1) return;
+async function submitMultiVote() {
+  if (!currentMultiId) return alert('Ошибка: ID опроса не найден');
 
-  const mp = polls[idx];
-  const email = localStorage.getItem('userEmail');
+  const docRef = db.collection('multiPolls').doc(currentMultiId);
+  const currentEmail = localStorage.getItem('userEmail') || 'guest';
 
-  if (mp.votedUsers && mp.votedUsers.includes(email)) {
-    return alert('Вы уже голосовали в этом пакете!');
-  }
+  try {
+    const doc = await docRef.get();
+    if (!doc.exists) return alert('Опрос не найден');
 
-  let allVoted = true;
-  mp.polls.forEach((poll, i) => {
-    const sel = document.querySelector(`input[name="mpoll-${i}"]:checked`);
-    if (!sel) allVoted = false;
-    else {
-      const v = parseInt(sel.value);
-      poll.votes[v] = (poll.votes[v] || 0) + 1;
-      poll.totalVotes = (poll.totalVotes || 0) + 1;
+    let mp = doc.data();
+
+    if (!mp || !Array.isArray(mp.polls) || mp.polls.length === 0) {
+      return alert('Ошибка структуры опроса. Создайте новый мульти-опрос.');
     }
-  });
 
-  if (!allVoted) return alert('Нужно проголосовать во всех опросах пакета!');
+    if (mp.votedUsers && mp.votedUsers.includes(currentEmail)) {
+      return alert('Вы уже голосовали в этом пакете!');
+    }
 
-  if (!mp.votedUsers) mp.votedUsers = [];
-  mp.votedUsers.push(email);
+    let updates = {};
+    let allVoted = true;
 
-  localStorage.setItem('multiPolls', JSON.stringify(polls));
+    mp.polls.forEach((poll, i) => {
+      const selected = document.querySelector(`input[name="mpoll-${i}"]:checked`);
+      if (!selected) {
+        allVoted = false;
+      } else {
+        const idx = parseInt(selected.value);
+        updates[`polls.${i}.votes.${idx}`] = firebase.firestore.FieldValue.increment(1);
+        updates[`polls.${i}.totalVotes`] = firebase.firestore.FieldValue.increment(1);
+      }
+    });
 
-  // Показываем результаты вместо закрытия
-  showMultiResults(mp);
+    if (!allVoted) {
+      return alert('Нужно проголосовать во всех опросах пакета!');
+    }
+
+    updates.votedUsers = firebase.firestore.FieldValue.arrayUnion(currentEmail);
+
+    await docRef.update(updates);
+
+    alert('✅ Все голоса успешно засчитаны!');
+
+    const freshDoc = await docRef.get();
+    showMultiResults(freshDoc.data());
+
+  } catch(e) {
+    console.error("Ошибка при отправке голосов:", e);
+    alert('❌ Ошибка отправки голосов:\n' + e.message);
+  }
 }
 
 function showMultiResults(mp) {
   const content = document.getElementById('multiVoteContent');
-  let html = `<h2 style="text-align:center;color:var(--neon);margin-bottom:20px;">${mp.title}</h2>`;
-  if (mp.desc) html += `<p style="text-align:center;color:#aaa;margin-bottom:30px;">${mp.desc}</p>`;
+  let html = `<h2 style="text-align:center;color:var(--neon);">${mp.title}</h2>`;
 
-  html += `<h3 style="text-align:center;color:#0f0;margin:25px 0;">✅ Голосование завершено!</h3>`;
-
-  mp.polls.forEach((poll, i) => {
-    const total = poll.totalVotes || poll.votes.reduce((a, b) => a + b, 0);
-    html += `
-      <div style="background:#1a1a1a; padding:25px; border-radius:18px; margin-bottom:25px; border:2px solid var(--neon);">
-        <div class="poll-question" style="font-size:1.75rem;margin-bottom:20px;">${poll.title}</div>`;
-
-    poll.options.forEach((opt, j) => {
-      const votes = poll.votes[j] || 0;
-      const percent = total ? Math.round((votes / total) * 100) : 0;
+  if (!mp || !Array.isArray(mp.polls)) {
+    html += `<p style="color:red; text-align:center;">Ошибка данных опроса</p>`;
+  } else {
+    mp.polls.forEach((poll, i) => {
+      const total = poll.totalVotes || 0;
       html += `
-        <div style="margin:18px 0;">
-          <strong>${opt}</strong> — ${votes} (${percent}%)
-          <div class="results-bar">
-            <div class="bar-fill" style="width:${percent}%"></div>
-            <span class="bar-text">${percent}%</span>
-          </div>
-        </div>`;
+        <div style="margin:25px 0; background:#111; padding:20px; border-radius:16px;">
+          <h4 style="color:var(--yellow);">${poll.title}</h4>`;
+      
+      poll.options.forEach((opt, j) => {
+        const votes = Array.isArray(poll.votes) ? (poll.votes[j] || 0) : 0;
+        const percent = total ? Math.round((votes / total) * 100) : 0;
+        html += `
+          <div style="margin:15px 0;">
+            <strong>${opt}</strong> — ${votes} (${percent}%)
+            <div class="results-bar"><div class="bar-fill" style="width:${percent}%"></div></div>
+          </div>`;
+      });
+      html += `</div>`;
     });
+  }
 
-    html += `</div>`;
-  });
-
-  html += `<button onclick="closeMultiVoteModal()" class="main" style="margin:30px auto 10px;display:block;">Закрыть</button>`;
-
+  html += `<button onclick="closeMultiVoteModal()" class="main" style="margin:25px auto;display:block;">Закрыть</button>`;
   content.innerHTML = html;
   document.getElementById('submitMultiBtn').style.display = 'none';
 }
@@ -3468,10 +3633,16 @@ async function publishGlobalPoll() {
 
   if (options.length < 2) return alert('Нужно минимум 2 варианта!');
 
+  if (!localStorage.getItem('loggedIn')) {
+    return alert('❌ Войдите в аккаунт перед публикацией!');
+  }
+
   const durationMs = parseInt(document.getElementById('globalDuration').value);
   const endTime = Date.now() + durationMs;
 
   const creatorAvatar = localStorage.getItem('userAvatar') || `https://i.pravatar.cc/150?u=${getCurrentUser()}`;
+
+  if (!checkPollForProfanity(title, desc, options)) return;
 
   const pollData = {
     title,
@@ -3480,31 +3651,31 @@ async function publishGlobalPoll() {
     votes: Array(options.length).fill(0),
     totalVotes: 0,
     creator: getCurrentUser(),
-    creatorAvatar: creatorAvatar,           // ← ОБЯЗАТЕЛЬНО
+    creatorAvatar,
     creatorEmail: localStorage.getItem('userEmail') || 'guest',
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    endTime: endTime,                       // ← Добавлено
+    endTime: endTime,
     votedUsers: []
   };
 
   try {
     await db.collection('globalPolls').add(pollData);
-    alert('✅ Глобальный опрос опубликован!');
-    
-    // Очистка
+    alert('✅ Глобальный опрос успешно опубликован!');
+
+    // Очистка формы
     document.getElementById('globalPollTitle').value = '';
     document.getElementById('globalPollDesc').value = '';
     document.getElementById('globalOptionsContainer').innerHTML = '';
     globalOptionsCount = 0;
     addGlobalOption(); 
     addGlobalOption();
-    
+
     if (document.getElementById('polls').style.display === 'block') {
       loadGlobalPolls();
     }
   } catch(e) {
-    alert('Ошибка публикации');
     console.error(e);
+    alert('❌ Ошибка Firebase: ' + e.message);
   }
 }
 
@@ -3717,6 +3888,14 @@ window.onload = () => {
 loadSavedPolls();
 
   showSection('home');
+
+  // Защита от доступа без авторизации
+  if (localStorage.getItem('loggedIn') !== 'true') {
+    setTimeout(() => {
+      showSection('login');
+    }, 800);
+  }
+
   switchTab(0);
  setTimeout(updateProfileUI, 300);
   setTimeout(updateProfileUI, 800);   
@@ -3892,20 +4071,24 @@ async function castVote(pollId) {
   }
 }
 
-// Обновляем функцию showSection (чтобы при открытии вкладки грузились опросы)
-const originalShowSection = window.showSection || function(){};
-window.showSection = function(section) {
-  originalShowSection(section);
-  
-  document.querySelectorAll('.section').forEach(s => {
-    s.style.display = 'none';
-  });
-  
-  const el = document.getElementById(section);
-  if (el) el.style.display = 'block';
+// Обновление showSection
+if (typeof window.originalShowSection === 'undefined') {
+  window.originalShowSection = showSection;
+}
 
+window.showSection = function(section) {
+  if (typeof window.originalShowSection === 'function') {
+    window.originalShowSection(section);
+  }
+  
   if (section === 'polls') {
     loadGlobalPolls();
+  }
+  if (section === 'create-global') {
+    if (globalOptionsCount === 0) {
+      addGlobalOption();
+      addGlobalOption();
+    }
   }
 };
 </script>
