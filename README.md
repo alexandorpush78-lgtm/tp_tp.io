@@ -994,30 +994,8 @@ body[data-theme="fire"] .bar-fill {
     }
 }
 
-/* Стили для графиков в результатах */
-.vote-results {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 25px;
-  margin: 35px 0;
-}
-
-.chart-box {
-  background: rgba(15,15,25,0.95);
-  border: 3px solid var(--dim);
-  border-radius: 22px;
-  padding: 20px;
-  box-shadow: 0 0 50px rgba(255,234,128,0.4);
-}
-
-@media (max-width: 768px) {
-  .vote-results { 
-    grid-template-columns: 1fr; 
-  }
-}
   </style>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <div class="container">
@@ -1386,22 +1364,23 @@ body[data-theme="fire"] .bar-fill {
   <div id="noMultiPolls" class="message hidden">Пока нет мульти-опросов. Создайте первый! 🔀</div>
 </div>
 
-<!-- === СОЗДАНИЕ ГЛОБАЛЬНОГО ОПРОСА (ОПТИМИЗИРОВАНО) === -->
+<!-- === СОЗДАНИЕ ГЛОБАЛЬНОГО ОПРОСА (УЛУЧШЕННАЯ ВЕРСИЯ) === -->
 <div id="create-global" class="section">
-  <h2 style="color:var(--yellow);">Создать Глобальный Опрос 🔥</h2>
-  <div style="background:rgba(20,20,30,0.95); padding:40px; border-radius:24px; border:3px solid var(--yellow); max-width:900px; margin:0 auto;">
-    <input id="globalPollTitle" placeholder="Название опроса" style="font-size:1.3rem;">
-    <textarea id="globalPollDesc" placeholder="Описание опроса (необязательно)" rows="4"></textarea>
+  <h2 style="color:var(--yellow); text-align:center;">🌍 Создать Глобальные Опросы</h2>
+  <div style="background:rgba(20,20,30,0.95); padding:40px; border-radius:24px; border:3px solid var(--yellow); max-width:1100px; margin:0 auto;">
     
-    <h3 style="color:var(--neon); margin:25px 0 15px;">Варианты ответов</h3>
-    <div id="globalOptionsContainer"></div>
+    <input id="globalPackageTitle" placeholder="Название пакета / темы (необязательно)" style="font-size:1.3rem; margin-bottom:15px;">
+    <textarea id="globalPackageDesc" placeholder="Общее описание пакета (необязательно)" rows="3" style="margin-bottom:25px;"></textarea>
+
+    <h3 style="color:var(--neon); margin:25px 0 15px;">📋 Опросы в пакете</h3>
+    <div id="globalPollsContainer" style="margin-bottom:30px;"></div>
     
-    <button onclick="addGlobalOption()" style="background:#222; color:var(--neon); padding:14px 32px; border:2px solid var(--dim); border-radius:12px; margin:20px 0;">
-      + Добавить вариант
+    <button onclick="addGlobalPollToPackage()" style="background:#222; color:var(--neon); padding:14px 32px; border:2px solid var(--dim); border-radius:12px; margin:15px 0;">
+      + Добавить новый опрос в пакет
     </button>
 
-    <h4 style="margin:25px 0 10px; color:var(--dim);">⏳ Срок действия опроса</h4>
-    <select id="globalDuration" style="width:100%; padding:16px; background:#222; color:#fff; border:2px solid var(--dim); border-radius:12px; font-size:1.2rem; margin-bottom:25px;">
+    <h4 style="margin:25px 0 10px; color:var(--dim);">⏳ Срок действия пакета</h4>
+    <select id="globalPackageDuration" style="width:100%; padding:16px; background:#222; color:#fff; border:2px solid var(--dim); border-radius:12px; font-size:1.2rem; margin-bottom:30px;">
       <option value="86400000">1 день</option>
       <option value="259200000" selected>3 дня</option>
       <option value="604800000">7 дней</option>
@@ -1409,8 +1388,8 @@ body[data-theme="fire"] .bar-fill {
       <option value="2592000000">30 дней</option>
     </select>
     
-    <button onclick="publishGlobalPoll()" class="main" style="width:100%; background:linear-gradient(135deg,#00ff88,#00ccff);">
-      🚀 Опубликовать в Опросы
+    <button onclick="publishGlobalPackage()" class="main" style="width:100%; background:linear-gradient(135deg,#00ff88,#00ccff); padding:20px; font-size:1.4rem;">
+      🚀 Опубликовать все опросы в Глобальные
     </button>
   </div>
 </div>
@@ -3269,7 +3248,7 @@ function addOptionToMultiPollInternal(container) {
   container.appendChild(div);
 }
 
-async function createMultiPoll() {
+function createMultiPoll() {
   const title = document.getElementById('multiTitle').value.trim();
   if (!title) return alert('Введите название пакета!');
 
@@ -3278,290 +3257,224 @@ async function createMultiPoll() {
 
   if (pollDivs.length < 1) return alert('Добавьте хотя бы один опрос!');
 
+if (!checkPollForProfanity(title, desc, options)) return;
+
   const multiPolls = [];
   let isValid = true;
 
   pollDivs.forEach((div, i) => {
     const pTitle = div.querySelector('.multi-poll-title').value.trim();
     const pDesc = div.querySelector('.multi-poll-desc').value.trim();
-    const opts = Array.from(div.querySelectorAll('.multi-opt-input'))
-                      .map(inp => inp.value.trim()).filter(v => v);
+    const opts = Array.from(div.querySelectorAll('.multi-opt-input')).map(inp => inp.value.trim()).filter(v => v);
 
     if (!pTitle || opts.length < 2) {
       alert(`Опрос №${i+1} должен иметь название и минимум 2 варианта!`);
       isValid = false;
     }
-    multiPolls.push({
-      title: pTitle,
-      desc: pDesc || '',
-      options: opts,
-      votes: Array(opts.length).fill(0),
-      totalVotes: 0
-    });
+    multiPolls.push({ id: Date.now()+i, title: pTitle, desc: pDesc, options: opts, votes: Array(opts.length).fill(0), totalVotes: 0 });
   });
 
   if (!isValid) return;
 
-  if (!localStorage.getItem('loggedIn')) {
-    return alert('❌ Сначала войдите в аккаунт!');
-  }
-
   const duration = parseInt(document.getElementById('multiDuration').value);
-  const endTime = Date.now() + duration;
-
   const multiPoll = {
-    title,
-    desc: desc || '',
+    id: Date.now(),
+    title, desc,
     polls: multiPolls,
     creator: getCurrentUser(),
     creatorAvatar: localStorage.getItem('userAvatar') || `https://i.pravatar.cc/150?u=${getCurrentUser()}`,
-    creatorEmail: localStorage.getItem('userEmail') || 'guest',
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    endTime: endTime,
+    date: new Date().toLocaleString('ru-RU'),
+    createdAt: Date.now(),
+    endTime: Date.now() + duration,
     votedUsers: []
   };
 
-  try {
-    await db.collection('multiPolls').add(multiPoll);
-    alert('✅ Мульти-опрос успешно опубликован!');
+  let list = JSON.parse(localStorage.getItem('multiPolls') || '[]');
+  list.unshift(multiPoll);
+  localStorage.setItem('multiPolls', JSON.stringify(list));
 
-    document.getElementById('multiTitle').value = '';
-    document.getElementById('multiDesc').value = '';
-    document.getElementById('multiPollsContainer').innerHTML = '';
-    multiPollCounter = 0;
-
-    loadMultiPolls();
-  } catch(e) {
-    console.error(e);
-    alert('❌ Ошибка публикации: ' + e.message);
-  }
+  alert('✅ Мульти-опрос успешно опубликован!');
+  document.getElementById('multiTitle').value = '';
+  document.getElementById('multiDesc').value = '';
+  document.getElementById('multiPollsContainer').innerHTML = '';
+  multiPollCounter = 0;
+  loadMultiPolls();
 }
 
-async function loadMultiPolls() {
+function loadMultiPolls() {
+  let polls = JSON.parse(localStorage.getItem('multiPolls') || '[]');
   const container = document.getElementById('multiPollsList');
   const noMulti = document.getElementById('noMultiPolls');
 
-  container.innerHTML = '<p style="text-align:center; padding:60px; color:#aaa;">Загрузка мульти-опросов...</p>';
-
-  try {
-    const snapshot = await db.collection('multiPolls')
-      .orderBy('createdAt', 'desc')
-      .get();
-
-    let html = '';
-    const now = Date.now();
-    const currentUser = getCurrentUser();
-    const currentEmail = localStorage.getItem('userEmail') || 'guest';
-
-    snapshot.forEach(doc => {
-      const mp = doc.data();
-      const multiId = doc.id;
-
-      if (mp.endTime && now > mp.endTime) return; // старые не показываем
-
-      const remaining = Math.max(0, mp.endTime - now);
-      const h = Math.floor(remaining / 3600000);
-      const m = Math.floor((remaining % 3600000) / 60000);
-
-      const canDelete = mp.creator === currentUser;
-
-      html += `
-        <div class="stats-card public-card" style="position:relative;">
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-            <img src="${mp.creatorAvatar}" style="width:52px;height:52px;border-radius:50%;border:3px solid var(--neon);">
-            <div>
-              <strong style="color:var(--yellow);">${mp.creator}</strong><br>
-              <small>${mp.desc || ''}</small>
-            </div>
-          </div>
-          <h3>${mp.title}</h3>
-          <p style="color:#aaa;">${mp.polls.length} опросов в пакете</p>
-          <div class="online-timer">⏳ ${h}ч ${m}м</div>
-
-          <button onclick="openMultiVote('${multiId}')" 
-                  style="width:100%; padding:16px; margin-top:12px; background:var(--neon); color:#000; border:none; border-radius:12px; font-weight:bold;">
-            Голосовать в пакете 🔀
-          </button>
-
-          ${canDelete ? `<button onclick="deleteMultiPoll('${multiId}'); event.stopImmediatePropagation();" class="delete-btn">×</button>` : ''}
-        </div>`;
-    });
-
-    container.innerHTML = html || '<p style="text-align:center; padding:80px; color:#aaa;">Пока нет мульти-опросов. Создайте первый!</p>';
-    noMulti.classList.add('hidden');
-  } catch(e) {
-    console.error(e);
-    container.innerHTML = '<p style="color:red; text-align:center;">Ошибка загрузки Firebase</p>';
+  container.innerHTML = '';
+  if (polls.length === 0) {
+    noMulti.classList.remove('hidden');
+    return;
   }
+  noMulti.classList.add('hidden');
+
+  polls = polls.filter(p => Date.now() < p.endTime);
+  localStorage.setItem('multiPolls', JSON.stringify(polls));
+
+  polls.forEach(mp => {
+    const rem = Math.max(0, mp.endTime - Date.now());
+    const h = Math.floor(rem / 3600000);
+    const m = Math.floor((rem % 3600000) / 60000);
+      const card = document.createElement('div');
+    card.className = 'stats-card public-card';
+    card.innerHTML = `
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+        <img src="${mp.creatorAvatar}" style="width:48px;height:48px;border-radius:50%;border:2px solid var(--neon);">
+        <div><strong>${mp.creator}</strong><br><small>${mp.date}</small></div>
+      </div>
+      <h3>${mp.title}</h3>
+      <p style="color:#aaa;">${mp.desc || ''} • ${mp.polls.length} опросов</p>
+      <div style="color:var(--yellow); margin:12px 0;">⏳ ${h}ч ${m}м</div>
+      
+      <button onclick="openMultiVote(${mp.id})" style="width:100%; padding:16px; background:var(--neon); color:#000; border:none; border-radius:12px; font-weight:bold; margin-bottom:8px;">
+        Голосовать в пакете 🔀
+      </button>
+      
+      <button onclick="showQrCode(${mp.id}); event.stopImmediatePropagation();" 
+              style="width:100%; padding:12px; background:#222; color:var(--yellow); border:2px solid var(--dim); border-radius:12px; font-weight:bold;">
+        📱 Показать QR-код
+      </button>
+      
+      ${mp.creator === getCurrentUser() ? `<button onclick="deleteMultiPoll(${mp.id}); event.stopImmediatePropagation();" class="delete-btn">×</button>` : ''}
+    `;
+    container.appendChild(card);
+  });
 }
 
-async function deleteMultiPoll(multiId) {
-  if (!confirm('Удалить этот мульти-опрос?')) return;
-  try {
-    await db.collection('multiPolls').doc(multiId).delete();
-    alert('Мульти-опрос удалён');
-    loadMultiPolls();
-  } catch(e) {
-    alert('Ошибка удаления');
-  }
+function deleteMultiPoll(id) {
+  if (!confirm('Удалить мульти-опрос?')) return;
+  let polls = JSON.parse(localStorage.getItem('multiPolls') || '[]');
+  polls = polls.filter(p => p.id !== id);
+  localStorage.setItem('multiPolls', JSON.stringify(polls));
+  loadMultiPolls();
 }
 
-// ======================== ГОЛОСОВАНИЕ В МУЛЬТИ ========================
+let currentMultiId = null;
 
-async function openMultiVote(multiId) {
-  currentMultiId = multiId;
+function openMultiVote(id) {
+  const pollsData = JSON.parse(localStorage.getItem('multiPolls') || '[]');
+  const mp = pollsData.find(p => p.id === id);
+  if (!mp) return alert('Опрос не найден');
+
+  currentMultiId = id;
   const modal = document.getElementById('multiVoteModal');
   const content = document.getElementById('multiVoteContent');
+  const submitBtn = document.getElementById('submitMultiBtn');
+  const resultsBtn = document.getElementById('viewMultiResultsBtn');
 
-  try {
-    const doc = await db.collection('multiPolls').doc(multiId).get();
-    if (!doc.exists) return alert('Опрос не найден');
+  const email = localStorage.getItem('userEmail');
+  const alreadyVoted = mp.votedUsers && mp.votedUsers.includes(email);
 
-    let mp = doc.data();
+  let html = `<h2 style="text-align:center;color:var(--neon);margin-bottom:15px;">${mp.title}</h2>`;
+  if (mp.desc) html += `<p style="text-align:center;color:#aaa;margin-bottom:25px;">${mp.desc}</p>`;
 
-    if (!mp || !Array.isArray(mp.polls) || mp.polls.length === 0) {
-      content.innerHTML = `<p style="color:red; text-align:center; padding:50px; font-size:1.3rem;">
-        Ошибка загрузки данных опроса.<br>
-        Попробуйте создать новый мульти-опрос.
-      </p>`;
-      modal.style.display = 'flex';
-      return;
-    }
+  mp.polls.forEach((poll, i) => {
+    html += `
+      <div style="background:#1a1a1a; padding:20px; border-radius:16px; margin-bottom:20px; border:2px solid var(--dim);">
+        <div class="poll-question" style="font-size:1.6rem; margin-bottom:15px;">${poll.title}</div>
+        <div id="mopts-${i}"></div>
+      </div>`;
+  });
 
-    const currentEmail = localStorage.getItem('userEmail') || 'guest';
-    const alreadyVoted = mp.votedUsers && mp.votedUsers.includes(currentEmail);
+  content.innerHTML = html;
 
-    let html = `<h2 style="text-align:center;color:var(--neon);">${mp.title}</h2>`;
-    if (mp.desc) html += `<p style="text-align:center;color:#aaa;">${mp.desc}</p>`;
-
-    mp.polls.forEach((poll, i) => {
-      html += `
-        <div style="background:#1a1a1a; padding:20px; border-radius:16px; margin:20px 0; border:2px solid var(--dim);">
-          <div class="poll-question">${poll.title}</div>
-          <div id="mopts-${i}"></div>
-        </div>`;
-    });
-
-    content.innerHTML = html;
-
+  if (alreadyVoted) {
+    submitBtn.style.display = 'none';
+    resultsBtn.style.display = 'none';
+    showMultiResults(mp);           // сразу показываем результаты
+  } else {
+    // Показываем варианты для голосования
     mp.polls.forEach((poll, i) => {
       const div = document.getElementById(`mopts-${i}`);
-      const total = poll.totalVotes || 0;
-
+      div.innerHTML = '';
       poll.options.forEach((opt, j) => {
-        const votes = Array.isArray(poll.votes) ? (poll.votes[j] || 0) : 0;
-        const percent = total ? Math.round((votes / total) * 100) : 0;
-
-        const optionHtml = alreadyVoted ? '' : `
-          <label class="option-label" style="margin:8px 0; padding:12px;">
-            <input type="radio" name="mpoll-${i}" value="${j}"> ${opt}
-          </label>`;
-
         div.innerHTML += `
-          <div style="margin:12px 0; padding:12px; background:#111; border-radius:12px;">
-            ${optionHtml}
-            <div style="margin-top:8px;">
-              <strong>${opt}</strong> — ${votes} (${percent}%)
-              <div class="results-bar"><div class="bar-fill" style="width:${percent}%"></div></div>
-            </div>
-          </div>`;
+          <label class="option-label" style="margin:10px 0; padding:16px;">
+            <input type="radio" name="mpoll-${i}" value="${j}" style="margin-right:15px;"> ${opt}
+          </label>`;
       });
     });
-
-    document.getElementById('submitMultiBtn').style.display = alreadyVoted ? 'none' : 'block';
-    document.getElementById('viewMultiResultsBtn').style.display = 'block';
-
-    modal.style.display = 'flex';
-  } catch(e) {
-    console.error(e);
-    alert('Ошибка загрузки опроса');
+    submitBtn.style.display = 'block';
+    resultsBtn.style.display = 'block';
   }
+
+  modal.style.display = 'flex';
 }
 
 function closeMultiVoteModal() {
   document.getElementById('multiVoteModal').style.display = 'none';
 }
 
-async function submitMultiVote() {
-  if (!currentMultiId) return alert('Ошибка: ID опроса не найден');
+function submitMultiVote() {
+  const polls = JSON.parse(localStorage.getItem('multiPolls') || '[]');
+  const idx = polls.findIndex(p => p.id === currentMultiId);
+  if (idx === -1) return;
 
-  const docRef = db.collection('multiPolls').doc(currentMultiId);
-  const currentEmail = localStorage.getItem('userEmail') || 'guest';
+  const mp = polls[idx];
+  const email = localStorage.getItem('userEmail');
 
-  try {
-    const doc = await docRef.get();
-    if (!doc.exists) return alert('Опрос не найден');
-
-    let mp = doc.data();
-
-    if (!mp || !Array.isArray(mp.polls) || mp.polls.length === 0) {
-      return alert('Ошибка структуры опроса. Создайте новый мульти-опрос.');
-    }
-
-    if (mp.votedUsers && mp.votedUsers.includes(currentEmail)) {
-      return alert('Вы уже голосовали в этом пакете!');
-    }
-
-    let updates = {};
-    let allVoted = true;
-
-    mp.polls.forEach((poll, i) => {
-      const selected = document.querySelector(`input[name="mpoll-${i}"]:checked`);
-      if (!selected) {
-        allVoted = false;
-      } else {
-        const idx = parseInt(selected.value);
-        updates[`polls.${i}.votes.${idx}`] = firebase.firestore.FieldValue.increment(1);
-        updates[`polls.${i}.totalVotes`] = firebase.firestore.FieldValue.increment(1);
-      }
-    });
-
-    if (!allVoted) {
-      return alert('Нужно проголосовать во всех опросах пакета!');
-    }
-
-    updates.votedUsers = firebase.firestore.FieldValue.arrayUnion(currentEmail);
-
-    await docRef.update(updates);
-
-    alert('✅ Все голоса успешно засчитаны!');
-
-    const freshDoc = await docRef.get();
-    showMultiResults(freshDoc.data());
-
-  } catch(e) {
-    console.error("Ошибка при отправке голосов:", e);
-    alert('❌ Ошибка отправки голосов:\n' + e.message);
+  if (mp.votedUsers && mp.votedUsers.includes(email)) {
+    return alert('Вы уже голосовали в этом пакете!');
   }
+
+  let allVoted = true;
+  mp.polls.forEach((poll, i) => {
+    const sel = document.querySelector(`input[name="mpoll-${i}"]:checked`);
+    if (!sel) allVoted = false;
+    else {
+      const v = parseInt(sel.value);
+      poll.votes[v] = (poll.votes[v] || 0) + 1;
+      poll.totalVotes = (poll.totalVotes || 0) + 1;
+    }
+  });
+
+  if (!allVoted) return alert('Нужно проголосовать во всех опросах пакета!');
+
+  if (!mp.votedUsers) mp.votedUsers = [];
+  mp.votedUsers.push(email);
+
+  localStorage.setItem('multiPolls', JSON.stringify(polls));
+
+  // Показываем результаты вместо закрытия
+  showMultiResults(mp);
 }
 
 function showMultiResults(mp) {
   const content = document.getElementById('multiVoteContent');
-  let html = `<h2 style="text-align:center;color:var(--neon);">${mp.title}</h2>`;
+  let html = `<h2 style="text-align:center;color:var(--neon);margin-bottom:20px;">${mp.title}</h2>`;
+  if (mp.desc) html += `<p style="text-align:center;color:#aaa;margin-bottom:30px;">${mp.desc}</p>`;
 
-  if (!mp || !Array.isArray(mp.polls)) {
-    html += `<p style="color:red; text-align:center;">Ошибка данных опроса</p>`;
-  } else {
-    mp.polls.forEach((poll, i) => {
-      const total = poll.totalVotes || 0;
+  html += `<h3 style="text-align:center;color:#0f0;margin:25px 0;">✅ Голосование завершено!</h3>`;
+
+  mp.polls.forEach((poll, i) => {
+    const total = poll.totalVotes || poll.votes.reduce((a, b) => a + b, 0);
+    html += `
+      <div style="background:#1a1a1a; padding:25px; border-radius:18px; margin-bottom:25px; border:2px solid var(--neon);">
+        <div class="poll-question" style="font-size:1.75rem;margin-bottom:20px;">${poll.title}</div>`;
+
+    poll.options.forEach((opt, j) => {
+      const votes = poll.votes[j] || 0;
+      const percent = total ? Math.round((votes / total) * 100) : 0;
       html += `
-        <div style="margin:25px 0; background:#111; padding:20px; border-radius:16px;">
-          <h4 style="color:var(--yellow);">${poll.title}</h4>`;
-      
-      poll.options.forEach((opt, j) => {
-        const votes = Array.isArray(poll.votes) ? (poll.votes[j] || 0) : 0;
-        const percent = total ? Math.round((votes / total) * 100) : 0;
-        html += `
-          <div style="margin:15px 0;">
-            <strong>${opt}</strong> — ${votes} (${percent}%)
-            <div class="results-bar"><div class="bar-fill" style="width:${percent}%"></div></div>
-          </div>`;
-      });
-      html += `</div>`;
+        <div style="margin:18px 0;">
+          <strong>${opt}</strong> — ${votes} (${percent}%)
+          <div class="results-bar">
+            <div class="bar-fill" style="width:${percent}%"></div>
+            <span class="bar-text">${percent}%</span>
+          </div>
+        </div>`;
     });
-  }
 
-  html += `<button onclick="closeMultiVoteModal()" class="main" style="margin:25px auto;display:block;">Закрыть</button>`;
+    html += `</div>`;
+  });
+
+  html += `<button onclick="closeMultiVoteModal()" class="main" style="margin:30px auto 10px;display:block;">Закрыть</button>`;
+
   content.innerHTML = html;
   document.getElementById('submitMultiBtn').style.display = 'none';
 }
@@ -3633,16 +3546,14 @@ async function publishGlobalPoll() {
 
   if (options.length < 2) return alert('Нужно минимум 2 варианта!');
 
-  if (!localStorage.getItem('loggedIn')) {
-    return alert('❌ Войдите в аккаунт перед публикацией!');
-  }
+if (!checkPollForProfanity(title, desc, options)) return;
 
   const durationMs = parseInt(document.getElementById('globalDuration').value);
   const endTime = Date.now() + durationMs;
 
   const creatorAvatar = localStorage.getItem('userAvatar') || `https://i.pravatar.cc/150?u=${getCurrentUser()}`;
 
-  if (!checkPollForProfanity(title, desc, options)) return;
+if (!checkPollForProfanity(title, desc, options)) return;
 
   const pollData = {
     title,
@@ -3651,67 +3562,61 @@ async function publishGlobalPoll() {
     votes: Array(options.length).fill(0),
     totalVotes: 0,
     creator: getCurrentUser(),
-    creatorAvatar,
+    creatorAvatar: creatorAvatar,           // ← ОБЯЗАТЕЛЬНО
     creatorEmail: localStorage.getItem('userEmail') || 'guest',
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    endTime: endTime,
+    endTime: endTime,                       // ← Добавлено
     votedUsers: []
   };
 
   try {
     await db.collection('globalPolls').add(pollData);
-    alert('✅ Глобальный опрос успешно опубликован!');
-
-    // Очистка формы
+    alert('✅ Глобальный опрос опубликован!');
+    
+    // Очистка
     document.getElementById('globalPollTitle').value = '';
     document.getElementById('globalPollDesc').value = '';
     document.getElementById('globalOptionsContainer').innerHTML = '';
     globalOptionsCount = 0;
     addGlobalOption(); 
     addGlobalOption();
-
+    
     if (document.getElementById('polls').style.display === 'block') {
       loadGlobalPolls();
     }
   } catch(e) {
+    alert('Ошибка публикации');
     console.error(e);
-    alert('❌ Ошибка Firebase: ' + e.message);
   }
 }
 
 async function loadGlobalPolls() {
   const container = document.getElementById('pollsContainer');
-  container.innerHTML = '<p style="text-align:center;padding:80px;color:#aaa;">Загрузка...</p>';
+  container.innerHTML = '<p style="text-align:center;padding:80px;color:#aaa;">Загрузка глобальных опросов...</p>';
 
   try {
     const snapshot = await db.collection('globalPolls').orderBy('createdAt', 'desc').get();
     let html = '';
     const now = Date.now();
-    const currentUser = getCurrentUser();
     const currentEmail = localStorage.getItem('userEmail') || 'guest';
 
     snapshot.forEach(doc => {
       const p = doc.data();
       const pollId = doc.id;
       
-      // Автофильтр по времени
-      if (p.endTime && now > p.endTime) {
-        // Можно удалить старый, но оставляем для истории
-        return;
-      }
+      if (p.endTime && now > p.endTime) return; // старые не показываем
 
       const total = p.totalVotes || 0;
       const hasVoted = p.votedUsers && p.votedUsers.includes(currentEmail);
       const remaining = p.endTime ? Math.max(0, p.endTime - now) : 0;
       const daysLeft = Math.floor(remaining / 86400000);
-      const hoursLeft = Math.floor((remaining % 86400000) / 3600000);
 
       let optionsHtml = '';
       p.options.forEach((opt, i) => {
         const votes = p.votes[i] || 0;
-        const percent = total ? Math.round((votes / total) * 100) : 0;
+        const percent = total > 0 ? Math.round((votes / total) * 100) : 0;
         optionsHtml += `
-          <div style="margin:16px 0; padding:16px; background:#111; border-radius:14px;">
+          <div style="margin:14px 0; padding:16px; background:#111; border-radius:14px; border:2px solid #333;">
             <label style="display:flex; align-items:center; gap:15px; cursor:pointer;">
               <input type="radio" name="global-vote-${pollId}" value="${i}" ${hasVoted ? 'disabled' : ''}>
               <span style="flex:1;">${opt}</span>
@@ -3723,25 +3628,18 @@ async function loadGlobalPolls() {
           </div>`;
       });
 
-      const canDelete = p.creator === currentUser;
+      const canDelete = p.creator === getCurrentUser();
 
       html += `
-        <div class="stats-card" style="position:relative;">
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:15px;">
-            <img src="${p.creatorAvatar || 'https://i.pravatar.cc/150?u=' + encodeURIComponent(p.creator)}" 
-                 style="width:50px; height:50px; border-radius:50%; border:2px solid var(--neon);">
-            <div>
-              <strong>${p.creator}</strong>
-              <small style="color:#aaa; display:block;">${p.date || ''}</small>
-            </div>
+        <div class="stats-card premium-poll-card" style="position:relative;">
+          ${p.packageTitle ? `<div style="color:#ff0; font-size:0.9rem; margin-bottom:8px;">📦 ${p.packageTitle}</div>` : ''}
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <img src="${p.creatorAvatar || 'https://i.pravatar.cc/150?u=' + encodeURIComponent(p.creator)}" style="width:48px;height:48px;border-radius:50%;border:2px solid var(--neon);">
+            <div><strong>${p.creator}</strong><small style="color:#aaa;"> • ${daysLeft}д</small></div>
           </div>
           
           <h3 style="color:var(--neon);">${p.title}</h3>
           ${p.desc ? `<p style="color:#aaa;">${p.desc}</p>` : ''}
-          
-          <div class="online-timer" style="margin:12px 0; font-size:1.1rem;">
-            ⏳ Осталось: ${daysLeft}д ${hoursLeft}ч
-          </div>
           
           ${optionsHtml}
           
@@ -3750,16 +3648,13 @@ async function loadGlobalPolls() {
             `<button onclick="castGlobalVote('${pollId}')" class="main" style="width:100%;">Проголосовать 🗳️</button>`
           }
           
-          ${canDelete ? 
-            `<button onclick="deleteGlobalPoll('${pollId}'); event.stopImmediatePropagation();" 
-                     class="delete-btn" style="top:15px;right:15px;">×</button>` : ''}
+          ${canDelete ? `<button onclick="deleteGlobalPoll('${pollId}'); event.stopImmediatePropagation();" class="delete-btn">×</button>` : ''}
         </div>`;
     });
 
-    container.innerHTML = html || '<p style="text-align:center; padding:80px; color:#aaa;">Пока нет активных опросов. Создайте первый!</p>';
+    container.innerHTML = html || '<p style="text-align:center; padding:100px; color:#aaa; font-size:1.3rem;">Пока нет глобальных опросов.<br>Создайте первый! 🌍</p>';
   } catch(e) {
-    console.error(e);
-    container.innerHTML = '<p style="color:red;text-align:center;">Ошибка загрузки Firebase</p>';
+    container.innerHTML = '<p style="color:red;text-align:center;">Ошибка подключения к Firebase</p>';
   }
 }
 
@@ -3837,6 +3732,116 @@ function closeSiteQR() {
   document.getElementById('siteQRModal').style.display = 'none';
 }
 
+let globalPollCounter = 0;
+
+function addGlobalPollToPackage() {
+  globalPollCounter++;
+  const container = document.getElementById('globalPollsContainer');
+  const pollDiv = document.createElement('div');
+  pollDiv.className = 'option';
+  pollDiv.style.marginBottom = '25px';
+  pollDiv.style.border = '2px solid var(--neon)';
+  pollDiv.innerHTML = `
+    <div style="flex:1;">
+      <input type="text" class="global-poll-title" placeholder="Название опроса ${globalPollCounter}" style="width:100%; margin-bottom:10px; font-size:1.2rem;">
+      <textarea class="global-poll-desc" placeholder="Описание опроса" rows="2" style="width:100%; margin-bottom:12px;"></textarea>
+      
+      <div class="global-options-container" style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;"></div>
+      
+      <button onclick="addOptionToGlobalPoll(this)" style="background:#222; color:var(--neon); padding:8px 20px; border:1px solid var(--dim); border-radius:8px;">+ Вариант</button>
+    </div>
+    <button onclick="this.parentElement.remove()" style="color:#ff6666; font-size:1.8rem; align-self:start; margin-left:10px;">×</button>
+  `;
+  container.appendChild(pollDiv);
+
+  // Добавляем 2 варианта по умолчанию
+  const optsContainer = pollDiv.querySelector('.global-options-container');
+  addOptionToGlobalPollInternal(optsContainer);
+  addOptionToGlobalPollInternal(optsContainer);
+}
+
+function addOptionToGlobalPoll(btn) {
+  const container = btn.parentElement.querySelector('.global-options-container');
+  addOptionToGlobalPollInternal(container);
+}
+
+function addOptionToGlobalPollInternal(container) {
+  const div = document.createElement('div');
+  div.className = 'option';
+  div.innerHTML = `
+    <input type="text" class="global-opt-input" placeholder="Вариант ответа" style="flex:1;">
+    <button onclick="this.parentElement.remove()" style="margin-left:10px; color:#ff6666;">×</button>
+  `;
+  container.appendChild(div);
+}
+
+async function publishGlobalPackage() {
+  const packageTitle = document.getElementById('globalPackageTitle').value.trim();
+  const packageDesc = document.getElementById('globalPackageDesc').value.trim();
+  const pollDivs = document.querySelectorAll('#globalPollsContainer > .option');
+
+  if (pollDivs.length === 0) return alert('Добавьте хотя бы один опрос!');
+
+  const durationMs = parseInt(document.getElementById('globalPackageDuration').value);
+  const endTime = Date.now() + durationMs;
+
+  let successCount = 0;
+
+  for (let div of pollDivs) {
+    const title = div.querySelector('.global-poll-title').value.trim();
+    const desc = div.querySelector('.global-poll-desc').value.trim();
+    const options = Array.from(div.querySelectorAll('.global-opt-input'))
+                        .map(inp => inp.value.trim())
+                        .filter(v => v);
+
+    if (!title || options.length < 2) {
+      alert(`Опрос "${title || 'без названия'}" пропущен — нужно название и минимум 2 варианта.`);
+      continue;
+    }
+
+// ←←← ЗАЩИТА ОТ МАТА ДЛЯ КАЖДОГО ОПРОСА В ПАКЕТЕ
+    if (!checkPollForProfanity(title, desc, options)) {
+      alert(`Опрос "${title}" не опубликован из-за нецензурных выражений.`);
+      continue;
+    }
+
+    const pollData = {
+      title,
+      desc: desc || '',
+      options,
+      votes: Array(options.length).fill(0),
+      totalVotes: 0,
+      creator: getCurrentUser(),
+      creatorAvatar: localStorage.getItem('userAvatar') || `https://i.pravatar.cc/150?u=${getCurrentUser()}`,
+      creatorEmail: localStorage.getItem('userEmail') || 'guest',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      endTime: endTime,
+      packageTitle: packageTitle || null,
+      votedUsers: []
+    };
+
+    try {
+      await db.collection('globalPolls').add(pollData);
+      successCount++;
+    } catch(e) {
+      console.error(e);
+    }
+  }
+
+  if (successCount > 0) {
+    alert(`✅ Успешно опубликовано ${successCount} глобальных опросов!`);
+    // Очистка
+    document.getElementById('globalPollsContainer').innerHTML = '';
+    globalPollCounter = 0;
+    document.getElementById('globalPackageTitle').value = '';
+    document.getElementById('globalPackageDesc').value = '';
+    
+    if (document.getElementById('polls').style.display === 'block') {
+      loadGlobalPolls();
+    }
+  }
+}
+
 // ======================== ЗАПУСК ========================
 window.onload = () => {
 
@@ -3888,14 +3893,6 @@ window.onload = () => {
 loadSavedPolls();
 
   showSection('home');
-
-  // Защита от доступа без авторизации
-  if (localStorage.getItem('loggedIn') !== 'true') {
-    setTimeout(() => {
-      showSection('login');
-    }, 800);
-  }
-
   switchTab(0);
  setTimeout(updateProfileUI, 300);
   setTimeout(updateProfileUI, 800);   
@@ -4071,24 +4068,20 @@ async function castVote(pollId) {
   }
 }
 
-// Обновление showSection
-if (typeof window.originalShowSection === 'undefined') {
-  window.originalShowSection = showSection;
-}
-
+// Обновляем функцию showSection (чтобы при открытии вкладки грузились опросы)
+const originalShowSection = window.showSection || function(){};
 window.showSection = function(section) {
-  if (typeof window.originalShowSection === 'function') {
-    window.originalShowSection(section);
-  }
+  originalShowSection(section);
   
+  document.querySelectorAll('.section').forEach(s => {
+    s.style.display = 'none';
+  });
+  
+  const el = document.getElementById(section);
+  if (el) el.style.display = 'block';
+
   if (section === 'polls') {
     loadGlobalPolls();
-  }
-  if (section === 'create-global') {
-    if (globalOptionsCount === 0) {
-      addGlobalOption();
-      addGlobalOption();
-    }
   }
 };
 </script>
